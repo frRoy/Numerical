@@ -15,6 +15,11 @@ set(PROJECT_URL  "https://bitbucket.org/frnsroy/numerical")
 set (CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Don't use e.g. GNU extension (like -std=gnu++11) for portability
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+
+
 # Check compiler version
 
 # Check for GCC version - earlier versions have insuffcient C++11
@@ -29,20 +34,11 @@ endif()
 
 # set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_BUILD_TYPE Debug)  # for valgrind target
-set(PROJECT_ENABLE_CODE_COVERAGE OFF)  # for code coverage
 # Debugging Options
 set (CMAKE_VERBOSE_MAKEFILE 0) # Use 1 for debugging, 0 otherwise.
 
 set(NUMERICAL_INCLUDE_DIR ${PROJECT_BINARY_DIR}/include)
 include_directories(${NUMERICAL_INCLUDE_DIR})
-
-# Add flags for generating code coverage reports
-if (PROJECT_ENABLE_CODE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage 
-      -fPIC -O0")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs 
-      -ftest-coverage -fPIC -O0")
-endif()
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 set(CMAKE_CONFIG_PATH ${PROJECT_SOURCE_DIR}/cmake.config)
@@ -76,6 +72,30 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(${Catch2_INCLUDE_DIRS})
 include_directories(${spdlog_INCLUDE_DIR})
 
+
+# Code Coverage Configuration
+add_library(coverage_config INTERFACE)
+
+
+option(CODE_COVERAGE "Enable coverage reporting" OFF)
+if(CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  # Add required flags (GCC & LLVM/Clang)
+  target_compile_options(coverage_config INTERFACE
+    -O0        # no optimization
+    -g         # generate debug info
+    --coverage # sets all required flags
+  )
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.13)
+    target_link_options(coverage_config INTERFACE --coverage)
+  else()
+    target_link_libraries(coverage_config INTERFACE --coverage)
+  endif()
+endif()
+
+
+
+
+
 # configure a header file to pass some of the CMake settings
 # to the source code
 configure_file (
@@ -104,24 +124,15 @@ add_subdirectory(doc)
 # target diffusion
 add_subdirectory(${PROJECT_SOURCE_DIR}/bench/diffusion EXCLUDE_FROM_ALL)
 
-# tests coverage?
-enable_testing()
-# Add target "tests", but do not add to default target
-add_subdirectory(${PROJECT_SOURCE_DIR}/tests EXCLUDE_FROM_ALL)
-include(CTest)
 
-#TODO generate properflags for gcovr --> generate .gcda file #################
-# target coverage
-if (PROJECT_ENABLE_CODE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
-  include(CodeCoverage)  # doesn't generate the .gcda file
-  APPEND_COVERAGE_COMPILER_FLAGS()
-  SETUP_TARGET_FOR_COVERAGE_GCOVR_HTML(
-    NAME coverage
-    EXECUTABLE ctest
-    DEPENDENCIES tests
-    )
+option (BUILD_TESTING "Build the testing tree." ON)
+# Only build tests if we are the top-level project
+# Allows this to be used by super projects with `add_subdirectory`
+if (BUILD_TESTING AND (PROJECT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR))
+  enable_testing()
+  add_subdirectory(${PROJECT_SOURCE_DIR}/tests)
+  # include(CTest)
 endif()
-##############################################################################
 
 # target valgrind
 find_program(VALGRIND "valgrind")

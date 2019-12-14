@@ -29,6 +29,14 @@ bool all_close_false(){
 
 TEST_CASE( "all_close are computed", "[all_close]" )
 {
-  CHECK( all_close_true() );
-  CHECK_FALSE( all_close_false() );
+    CHECK( all_close_true() );
+    CHECK_FALSE( all_close_false() );
+}
+TEST_CASE("Test linear_spaced", "[utils]")
+{
+	std::vector<double> u = {0.0, 1.1, 2.2, 3.3};
+	auto v = utils::linear_spaced<double>(0, 3.3, 4);
+	for(int i; i<u.size(); i++){
+        CHECK(v[i] == Approx(u[i]) );
+	}
 }

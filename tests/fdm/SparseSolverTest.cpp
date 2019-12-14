@@ -16,9 +16,23 @@ typedef Eigen::Triplet<double> T;
 
 T trip = T(1,1,3.0);
 
+bool test_solver(){
+    numerical::fdm::Parameters<double>* params = 
+        new numerical::fdm::Parameters<double>();
+    numerical::fdm::Problem<double>* p = 
+        new numerical::fdm::Problem<double>(params);
+    numerical::fdm::SparseSolver<double> s = 
+        numerical::fdm::SparseSolver<double>(p);
+    s.solve();
+    delete params;
+    delete p;
+    return true;
+}
+
 }  // end namespace
 
 TEST_CASE( "SparseSolver are computed", "[sparse solver]" )
 {
   REQUIRE( trip.value() == Approx(3.0) );
+  CHECK(test_solver());
 }

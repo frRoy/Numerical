@@ -24,7 +24,9 @@ T sum(T a, T b, T c, T d){
 /**
 */
 double test_default() {
-    Problem p = Problem(Parameters());
+	Parameters* params = new Parameters();
+    Problem p = Problem(params);
+    delete params;
     return p.dim();
 }
 

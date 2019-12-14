@@ -2,3 +2,4 @@ build/
 TODO.txt
 *.sublime-project
 *.sublime-workspace
+coverage.info

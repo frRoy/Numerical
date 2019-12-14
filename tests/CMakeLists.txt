@@ -20,7 +20,7 @@ set(TEST_SOURCES
   )
 
 add_executable(tests ${TEST_SOURCES})
-target_link_libraries(tests PRIVATE Catch)
+target_link_libraries(tests PRIVATE Catch lfdm)
 
 # Test target
 add_test(tests tests)

@@ -10,8 +10,7 @@
 #include <vector>
 #include <Eigen/SparseCore>
 #include "spdlog/spdlog.h"
-#include "Parameters.hpp"
-#include "Mesh.hpp"
+#include "Problem.hpp"
 
 namespace numerical {
 
@@ -27,30 +26,19 @@ class SparseSolver {
 typedef Eigen::SparseMatrix<T> SpMat;
 typedef Eigen::Triplet<T> Trip;
 typedef Eigen::VectorXd Vec;
-typedef Eigen::ArrayXd Arr;
-typedef numerical::fdm::Mesh<T> Mesh;
 private:
   SpMat m_A;
   Vec m_b;
-  Parameters<T> m_params;
-  Vec m_x, m_t;  // spatial and temporal mesh nodes
-  T m_alpha, m_theta;  // diffusion constant, theta value
-  T m_d0, m_dl;  // Dirichlet boundary conditions
+  Vec m_u;
+  Problem<T>* m_problem;
 public:
-  SparseSolver(Parameters<T> params): m_params(params) {
+  SparseSolver(Problem<T>* problem)
+    : m_problem(problem)
+     {
       // define variables
       T dx, dt;
-      // define 1D mesh
-      Mesh mesh = Mesh(m_params.lengths, m_params.t0, m_params.tend, 
-        m_params.n, m_params.nt);
-      dx = mesh.dx()[0];
-      dt = mesh.dt();
-      m_x = mesh.x()[0];
-      m_t = mesh.t();
-      // set boundary conditions here
   }
   ~SparseSolver(){
-      spdlog::info("parameters destroyed");
       // delete m_A;
       // delete m_b;
   }
@@ -64,7 +52,6 @@ public:
   *
   */
   void assemble_a(){
-    int nx = m_params.n[0];
     /*
     // The loops are vectorized for efficiency -- see bench/performances
     SpMat A(nx + 1, nx + 1);
@@ -137,22 +124,15 @@ public:
   * Solve the time dependent problem.
   */
   virtual Eigen::VectorXf solve(){
-      int nx = m_params.n[0];
-      // assemble();
-      Vec u = Eigen::VectorXd::Zero(nx + 1);  // solution array at t[n+1]
-      Vec u_n = Eigen::VectorXd::Zero(nx + 1);  // solution at t[n]
-      Vec b = Eigen::VectorXd::Zero(nx + 1);  // right-hand side
-      Arr arr_u = Eigen::ArrayXd::Zero(nx + 1);
-
       //  Set initial condition
-      for(int i=0; i<u_n.size(); i++){
-          u_n[i] = m_params.init(m_x[i], 0., 0.);    
-      }
+      //for(int i=0; i<u_n.size(); i++){
+          // u_n[i] = m_params.init(m_x[i], 0., 0.);    
+      //}
       // std::cout << u_n << "\n";
+
+      spdlog::info("{}", m_problem->left(0, 1.0, 1.0, 1.0));
       // Time loop
-      for(int n=0; n<m_params.nt; n++){
-          b.segment(1, b.size()-2) = u_n.segment(1, u_n.size()-2);
-      }
+
       Eigen::VectorXf solution = Eigen::VectorXf::Unit(4,1);
       return solution;
   }
@@ -161,11 +141,9 @@ public:
 
 /*
  * For a sparse matrix, return a vector of triplets, such that we can
- * reconstruct the matrix using setFromTriplet function
- * @param matrix A sparse matrix
+ * reconstruct the matrix using setFromTriplet function.
+ * @param matrix A sparse matrix.
  * @return A triplet with the row, column and value of the non-zero entries.
- * See https://eigen.tuxfamily.org/dox/group__TutorialSparse.html for more
- * information on the triplet
  */
 template <typename Derived>
 std::vector<Eigen::Triplet<typename Derived::Scalar>> SparseMatrixToTriplets(

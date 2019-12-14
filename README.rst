@@ -1,6 +1,11 @@
 *********
 NUMERICAL
 *********
+.. image:: https://travis-ci.com/frRoy/numerical.svg?branch=master
+    :target: https://travis-ci.com/frRoy/numerical
+
+.. image:: https://codecov.io/gh/frRoy/numerical/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/frRoy/numerical
 
 - Licensed under MIT
 
@@ -14,8 +19,6 @@ Installation
 2. mkdir build && cd build
 3. cmake ..
 4. make -j4
-5. make tests
-6. ctest
+5. ctest (test)
 
-Documentation available at: 
-
+Documentation available at: https://frRoy.github.io/numerical

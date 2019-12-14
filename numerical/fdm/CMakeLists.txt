@@ -19,3 +19,10 @@ set(SOURCES
 
 file(GLOB SOURCES *.cpp)
 add_library(lfdm SHARED ${SOURCES})
+
+# Setting this to the library only avoids errors in 3rd party dependencies 
+# which are compile with 
+# e.g. -Werror target_compile_options(example PUBLIC -Wall -pedantic)
+
+# Include code-coverage settings:
+target_link_libraries(lfdm PUBLIC coverage_config)

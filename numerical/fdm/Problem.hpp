@@ -33,14 +33,15 @@ class Problem {
 typedef Eigen::SparseMatrix<T> SpMat;
 typedef Eigen::Triplet<T> Trip;
 typedef Eigen::Matrix<T, Eigen::Dynamic, 1> Vec;
-typedef Eigen::ArrayXd Arr;
 private:
     int m_dim;
+    
 protected:
     Parameters<T>* m_params;
     Vec m_u;  // The solution vector
 public:
-    Problem(Parameters<T>* params): m_params(params) {
+    Problem(Parameters<T>* params): 
+      m_params(params) {
         // define other variables variables
         m_dim = m_params->lengths.size();
   	    // define mesh
@@ -49,7 +50,6 @@ public:
     }
     virtual ~Problem(){
     }
-
     /**
     * Diffusion coefficient value. The default is a constant obtained from 
     * m_params.
@@ -72,8 +72,7 @@ public:
     }
 
     /**
-    * Left boundary value, on the left node (1D) or on a line parallel to the
-    * y-axis (2D) or on a plane parallel to y0z (3D).
+    * Left boundary value, i.e. for x = lengths[0][0].
     *
     * @param type Dirichlet = 0, Neumann = 1.
     * @param x1 The first coordinate of the mesh node.
@@ -86,8 +85,7 @@ public:
     }
 
     /**
-    * Right boundary value, on the right node (1D) or on a line parallel to the
-    * y-axis (2D) or on a plane parallel to y0z (3D).
+    * Right boundary value, i.e. for x = lengths[0][1].
     *
     * @param type Dirichlet = 0, Neumann = 1.
     * @param x1 The first coordinate of the mesh node.
@@ -100,8 +98,8 @@ public:
     }
 
     /**
-    * Bottom boundary value, on a line parallel to the x-axis (2D) or on a 
-    * plane parallel to x0z (3D).
+    * Bottom boundary value, i.e. at y = lengths[1][0]. Only for 2D and 
+    * 3D models.
     *
     * @param type Dirichlet = 0, Neumann = 1.
     * @param x1 The first coordinate of the mesh node.
@@ -114,8 +112,7 @@ public:
     }
 
     /**
-    * Top boundary value, on a line parallel to the x-axis (2D) or on a 
-    * plane parallel to x0z (3D).
+    * Top boundary value, i.e. at y = lengths[1][1]. Only for 2D and 3D models.
     *
     * @param type Dirichlet = 0, Neumann = 1.
     * @param x1 The first coordinate of the mesh node.
@@ -128,7 +125,7 @@ public:
     }
 
     /**
-    * Front boundary value, on a plane parallel to x0y (3D).
+    * Front boundary value, i.e. at cz = length[2][0]. Only for 3D models.
     *
     * @param type Dirichlet = 0, Neumann = 1.
     * @param x1 The first coordinate of the mesh node.
@@ -141,7 +138,7 @@ public:
     }
 
     /**
-    * Back boundary value, on a plane parallel to x0y (3D).
+    * Back boundary value, i.e. at z = length[2][0]. Only for 3D models.
     *
     * @param type Dirichlet = 0, Neumann = 1.
     * @param x1 The first coordinate of the mesh node.
@@ -166,18 +163,6 @@ public:
     }
 
     /**
-    * Neumann boundary value.
-    *
-    * @param x1 The first coordinate of the mesh node.
-    * @param x2 The second coordinate of the mesh node.
-    * @param t The discrete time.
-    * @return The Neumann boundary value at a specified mesh location.
-    */
-    virtual T neumann(T x1, T x2, T t){
-  	    return 0.0;
-    }
-
-    /**
     *  Get the reference solution at a specified mesh location.
     *
     * @param x The x-coordinate of the mesh node.
@@ -186,7 +171,7 @@ public:
     * @param t The discrete time.
     * @return The reference solution at a specified mesh location.
     */
-    virtual T reference(T x1, T x2, T t){
+    virtual T reference(T x, T y, T z, T t){
     	return 0.0;
     }
 
@@ -199,15 +184,8 @@ public:
     * @param t The discrete time.
     * @return The computed solution at a specified mesh location.
     */
-    virtual T solution(T x1, T x2, T t){
+    virtual T solution(T x, T y, T z, T t){
     	return 0.0;
-    }
-
-    /**
-    *  Solve the finite difference problem.
-    */
-    virtual void solve(){
-    	// sets m_u here
     }
 
     /**
