@@ -21,4 +21,4 @@ Installation
 4. make -j4
 5. ctest (test)
 
-Documentation available at: https://frRoy.github.io/numerical
+Documentation available at: https://frRoy.github.io/Numerical
