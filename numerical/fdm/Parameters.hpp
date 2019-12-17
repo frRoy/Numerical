@@ -1,6 +1,6 @@
 /**
  *  @file    Parameters.hpp
- *  @brief   Definition of the diffusion problem.
+ *  @brief   Definition of the default values.
  *  @author  Francois Roy
  *  @date    12/04/2019
  */
@@ -34,9 +34,9 @@ struct Parameters
     	alpha = 1.0;
         theta = 0.5;
         // unit cube
-    	lengths = {{0.0, 1.0}, {0.0, 1.0}, {0.0, 1.0}};
+    	lengths = {{0.0, 1.0}, {0.0, 1.0}};
         // 10 divisions per dimensions
-    	n = {10, 10, 10};
+    	n = {10, 10};
         // initial time
     	t0 = 0.0;
         // final time
@@ -46,7 +46,8 @@ struct Parameters
     }
 };
 
-} // end namespace fdm
-}  // end namesapce numerical
+} // namespace fdm
+
+}  // namesapce numerical
 
 #endif  // PARAMETERS_H

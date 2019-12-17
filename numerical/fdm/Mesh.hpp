@@ -1,6 +1,6 @@
 /**
  *  @file    Mesh.hpp
- *  @brief   Definition of the finite difference mesh.
+ *  @brief   The finite difference mesh for the hypercube.
  *  @author  Francois Roy
  *  @date    12/04/2019
  */
@@ -9,7 +9,6 @@
 
 #include <stdexcept>
 #include <vector>
-#include <unordered_set>
 #include <Eigen/Core>
 #include "spdlog/spdlog.h"
 #include "utils/Utils.hpp"
@@ -18,7 +17,7 @@ namespace numerical {
 
 namespace fdm {
 
-/*!
+/**
 * Holds data structures for a uniform mesh on a hypercube in
 * space, plus a uniform mesh in time.
 *
@@ -84,69 +83,27 @@ public:
         	m_t[i] = i * m_nt;
         }
 	}
-
-    /*!
-    * If 1D, \c ny\c and \c nz\c = 0, if 2D \c nz\c = 0, else all are > 1. See 
-    * \ref fig_mesh
+    /**
+    *  The indices of the nodes on the back boundary, i.e. at 
+    *  z = length[2][1]. Only for 3D models.
     *
-    * @return The number of divisions per axis.
+    * @return The indices of the nodes on the back boundary, 
     */
-    std::vector<int> division_per_axis(){
-        int n_x = m_nx[0];
-        int n_y = 0;
-        int n_z = 0;
-        if (m_dim >= 2){
-            n_y = m_nx[1];
-        }
-        if (m_dim == 3) {
-            n_z = m_nx[2];
-        }
-        return {n_x, n_y, n_z};
-    }
-    
-    /*!
-    *  The indices of the nodes on the left boundary, 
-    *  i.e. at x = lengths[0][0].
-    */
-    std::vector<int> left(){
+    std::vector<int> back(){
         std::vector<int> nx = division_per_axis();
-        std::unordered_set<int> temp1;
         std::vector<int> temp;
-        if (m_dim == 1){
-            temp = {0};
-        }
-        else if (m_dim == 2){
-            for (int j=0; j<nx[1] + 1; ++j){
-                temp.push_back(j * (nx[0] + 1));
-            }
-        }
-        else {  // m_dim = 3
-            for (int j=0; j<nx[1] + 1; ++j){
-                for (int k=0; k<nx[2] + 1; ++k){
-                    temp.push_back(j * (nx[0] + 1) + 
-                        k * ((nx[0] + 1)*(nx[1] + 1)));
+        for (int i=0; i<nx[0] + 1; ++i){
+                for (int j=0; j<nx[1] + 1; ++j){
+                    temp.push_back(i + j * (nx[0] + 1));
                 }
             }
-        }
         return temp;
     }
-
-    /*!
-    *  The indices of the nodes on the right boundary, i.e. at 
-    *  x = lengths[0][1]. It is just left + n_x.
-    */
-    std::vector<int> right(){
-        std::vector<int> nx = division_per_axis();
-        std::vector<int> out = left();
-        for(int& i : out){
-            i += nx[0];
-        }
-    	return out;
-    }
-
-    /*!
+    /**
     *  The indices of the nodes on the bottom boundary, i.e. at 
     *  y = lengths[1][0]. Only for 2D and 3D models.
+    *
+    * @return The indices of the nodes on the bottom boundary, 
     */
     std::vector<int> bottom(){
         std::vector<int> nx = division_per_axis();
@@ -165,56 +122,7 @@ public:
         }
         return temp;
     }
-
-    /*!
-    *  The indices of the nodes on the top boundary i.e. at 
-    *  y = lengths[1][1]. Only for 2D and 3D models.
-    */
-    std::vector<int> top(){
-    	std::vector<int> nx = division_per_axis();
-        std::vector<int> out = bottom();
-        if (m_dim == 2){
-            for(int& i : out){
-                i += nx[1] * (nx[0] + 1);
-            }
-        }
-        else { // 3D
-            for(int& i : out){
-                i += (nx[0] + 1) * (nx[0] + 1);
-            }
-        }
-        return out;
-    }
-
-    /*!
-    *  The indices of the nodes on the front, i.e. at 
-    *  z = length[2][0]. Only for 3D models.
-    */
-    std::vector<int> front(){
-        std::vector<int> nx = division_per_axis();
-        std::vector<int> out = back();
-        for(int& i : out){
-            i += nx[2] * (nx[0] + 1) * (nx[1] + 1);
-        }
-        return out;
-    }
-
-    /*!
-    *  The indices of the nodes on the back boundary, i.e. at 
-    *  z = length[2][1]. Only for 3D models.
-    */
-    std::vector<int> back(){
-        std::vector<int> nx = division_per_axis();
-        std::vector<int> temp;
-        for (int i=0; i<nx[0] + 1; ++i){
-                for (int j=0; j<nx[1] + 1; ++j){
-                    temp.push_back(i + j * (nx[0] + 1));
-                }
-            }
-        return temp;
-    }
-
-    /*!
+    /**
     * @return The indices of the external boundaries.
     */
     std::vector<int> boundaries(){
@@ -271,79 +179,7 @@ public:
         }
         return temp;
     }
-
-    /*!
-    *  
-    */
-    std::vector<int> domain(){
-        std::vector<int> nx = division_per_axis();
-        std::vector<int> all;
-        if (m_dim == 1){
-            all == utils::linear_spaced<int>(0, nx[0], nx[0] + 1);
-        }
-        else if (m_dim ==2){
-            all == utils::linear_spaced<int>(0, (nx[0] + 1) * (nx[1] + 1) - 1, 
-                (nx[0] + 1) * (nx[1] + 1));
-        } else {
-            all == utils::linear_spaced<int>(0, 
-                (nx[0] + 1) * (nx[1] + 1) * (nx[2] + 1) - 1, 
-                (nx[0] + 1) * (nx[1] + 1) * (nx[2] + 1));
-        }
-        return all;
-    }
-
-    /*!
-    *  @return The interior nodes.
-    */
-    std::vector<int> interior(){
-        return {0};
-    }
-
-    /*!
-    *  Returns the boundary nodes in 3D.
-    *  @return The surfaces. 
-    */
-    std::vector<int> surfaces(){
-        std::vector<int> out;
-        if (m_dim == 3){
-            out = boundaries();
-        }
-        return out;
-    }
-
-    /*!
-    *  2D, 3D 
-    */
-    std::vector<int> edges(){
-        // TODO define in 3D
-        // boundaries in 2D
-        return {0};
-    }
-
-    /*!
-    *  1D, 2D, 3D 
-    */
-    std::vector<int> corners(){
-        // TODO define in 3D
-        // 2D: 0, nx, ny * (nx+1), (ny+1) * (nx+1) -1
-        // boundaries in 1D
-        return {0};
-    }
-
-	/*!
-	* @return the space dimension.
-	*/
-	std::size_t dim(){
-		return m_dim;
-	}
-	/*!
-	* @return the space increment for each dimension.
-	*/
-	std::vector<T> dx() {
-		return m_dx;
-	}
-
-    /*!
+    /**
     * Defines a mapping \f$m(i, j, k)\f$ from a mesh point with indices 
     * \f$(i, j, k)\f$ to the corresponding unknown index \f$p\f$ in the 
     * equation system:
@@ -361,10 +197,10 @@ public:
     * located at z = z_0 has been processed. We then continue on the next 
     * slice until the entire meshed cube has been mapped.
     *
-    * The coordinates are returned in a 3D vector.
+    * The coordinates are returned in a vector of 3D Eigen::Vector.
     * @return The mesh node coordinates.
     */
-    Eigen::Matrix<Eigen::Matrix<T, 3, 1>, Eigen::Dynamic, 1> coordinates() {
+    std::vector<Eigen::Matrix<T, 3, 1>> coordinates() {
         // get the number of divisions per axis
         int n_x = m_nx[0];
         int n_y = 0;
@@ -382,39 +218,199 @@ public:
         }
         // generate the vector of coordinates
         Eigen::Matrix<T, 3, 1> node;
-        Eigen::Matrix<Eigen::Matrix<T, 3, 1>, Eigen::Dynamic, 1> coords;
+        std::vector<Eigen::Matrix<T, 3, 1>> coords;
         for (int k=0; k<n_z + 1; ++k){
             for (int j=0; j<n_y + 1; ++j) {
                 for (int i=0; i<n_x + 1; ++i){
-                    // spdlog::debug("{}",i + j*(n_x + 1) + k*((n_x + 1) * (n_y+1)));
                     node = {m_x[0][i], y[j], z[k]};
-                    // spdlog::debug("x: {} y: {} z: {}", m_x[0][i], y[j], z[k]);
+                    // spdlog::info("x: {} y: {} z: {}", m_x[0][i], y[j], z[k]);
+                    coords.push_back(node);
                 }
             }
         }
         return coords;
     }
-
-	/*!
-	* @return the time increment.
-	*/
-	T dt() {
-		return m_dt;
-	}
-	/*!
+    /**
+    *  1D, 2D, 3D
+    * @return The indices of the corners. 
+    */
+    std::vector<int> corners(){
+        // TODO define in 3D
+        // 2D: 0, nx, ny * (nx+1), (ny+1) * (nx+1) -1
+        // boundaries in 1D
+        return {0};
+    }
+    /**
+    * @return the space dimension.
+    */
+    std::size_t dim(){
+        return m_dim;
+    }
+    /**
+    * If 1D, \c ny\c and \c nz\c = 0, if 2D \c nz\c = 0, else all are > 1. See 
+    * \ref fig_mesh
+    *
+    * @return The number of divisions per axis.
+    */
+    std::vector<int> division_per_axis(){
+        int n_x = m_nx[0];
+        int n_y = 0;
+        int n_z = 0;
+        if (m_dim >= 2){
+            n_y = m_nx[1];
+        }
+        if (m_dim == 3) {
+            n_z = m_nx[2];
+        }
+        return {n_x, n_y, n_z};
+    }
+    /**
+    * @return The indices of the domain (all). 
+    */
+    std::vector<int> domain(){
+        std::vector<int> nx = division_per_axis();
+        std::vector<int> all;
+        if (m_dim == 1){
+            all == utils::linear_spaced<int>(0, nx[0], nx[0] + 1);
+        }
+        else if (m_dim ==2){
+            all == utils::linear_spaced<int>(0, (nx[0] + 1) * (nx[1] + 1) - 1, 
+                (nx[0] + 1) * (nx[1] + 1));
+        } else {
+            all == utils::linear_spaced<int>(0, 
+                (nx[0] + 1) * (nx[1] + 1) * (nx[2] + 1) - 1, 
+                (nx[0] + 1) * (nx[1] + 1) * (nx[2] + 1));
+        }
+        return all;
+    }
+    /**
+    * @return the constant time increment.
+    */
+    T dt() {
+        return m_dt;
+    }
+    /**
+    * @return the space increment for each dimension.
+    */
+    std::vector<T> dx() {
+        return m_dx;
+    }
+    /**
+    *  2D, 3D 
+    * @return The nodes of the edges.
+    */
+    std::vector<int> edges(){
+        // TODO define in 3D
+        // boundaries in 2D
+        return {0};
+    }
+    /**
+    *  The indices of the nodes on the front, i.e. at 
+    *  z = length[2][0]. Only for 3D models.
+    *
+    * @return The indices of the nodes on the front boundary,  
+    */
+    std::vector<int> front(){
+        std::vector<int> nx = division_per_axis();
+        std::vector<int> out = back();
+        for(int& i : out){
+            i += nx[2] * (nx[0] + 1) * (nx[1] + 1);
+        }
+        return out;
+    }
+    /**
+    *  @return The interior nodes.
+    */
+    std::vector<int> interior(){
+        // TODO
+        return {0};
+    }
+    /**
+    *  The indices of the nodes on the left boundary, 
+    *  i.e. at x = lengths[0][0].
+    *
+    * @return The indices of the nodes on the left boundary. 
+    */
+    std::vector<int> left(){
+        std::vector<int> nx = division_per_axis();
+        std::vector<int> temp;
+        if (m_dim == 1){
+            temp = {0};
+        }
+        else if (m_dim == 2){
+            for (int j=0; j<nx[1] + 1; ++j){
+                temp.push_back(j * (nx[0] + 1));
+            }
+        }
+        else {  // m_dim = 3
+            for (int j=0; j<nx[1] + 1; ++j){
+                for (int k=0; k<nx[2] + 1; ++k){
+                    temp.push_back(j * (nx[0] + 1) + 
+                        k * ((nx[0] + 1)*(nx[1] + 1)));
+                }
+            }
+        }
+        return temp;
+    }
+    /**
+    *  The indices of the nodes on the right boundary, i.e. at 
+    *  x = lengths[0][1]. It is just left + n_x.
+    *
+    * @return The indices of the nodes on the right boundary, 
+    */
+    std::vector<int> right(){
+        std::vector<int> nx = division_per_axis();
+        std::vector<int> out = left();
+        for(int& i : out){
+            i += nx[0];
+        }
+    	return out;
+    }
+    /**
+    *  Returns the boundary nodes in 3D.
+    *  @return The surfaces. 
+    */
+    std::vector<int> surfaces(){
+        std::vector<int> out;
+        if (m_dim == 3){
+            out = boundaries();
+        }
+        return out;
+    }
+    /**
+    * @return the time list.
+    */
+    Vec t() {
+        return m_t;
+    }
+    /**
+    *  The indices of the nodes on the top boundary i.e. at 
+    *  y = lengths[1][1]. Only for 2D and 3D models.
+    *
+    * @return The indices of the nodes on the top boundary, 
+    */
+    std::vector<int> top(){
+        std::vector<int> nx = division_per_axis();
+        std::vector<int> out = bottom();
+        if (m_dim == 2){
+            for(int& i : out){
+                i += nx[1] * (nx[0] + 1);
+            }
+        }
+        else { // 3D
+            for(int& i : out){
+                i += (nx[0] + 1) * (nx[0] + 1);
+            }
+        }
+        return out;
+    }
+	/**
 	* @return the list of coordinates in each dimensions.
 	*/
 	std::vector<Vec> x() {
 		return m_x;
 	}
-	/*!
-	* @return the time list.
-	*/
-	Vec t() {
-		return m_t;
-	}
 };
-
 
 }  // namespace fdm
 

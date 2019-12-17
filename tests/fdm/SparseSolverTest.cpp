@@ -19,11 +19,14 @@ T trip = T(1,1,3.0);
 bool test_solver(){
     numerical::fdm::Parameters<double>* params = 
         new numerical::fdm::Parameters<double>();
+    params->lengths = {{0.0, 1.0}};
+    params->n = {10};
     numerical::fdm::Problem<double>* p = 
         new numerical::fdm::Problem<double>(params);
     numerical::fdm::SparseSolver<double> s = 
         numerical::fdm::SparseSolver<double>(p);
     s.solve();
+    s.assemble_a();
     delete params;
     delete p;
     return true;

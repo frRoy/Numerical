@@ -6,12 +6,12 @@ cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
 project(Numerical CXX)
 set(PROJECT_VERSION_RELEASE 0)
-set(PROJECT_VERSION_MAJOR "2019")
+set(PROJECT_VERSION_MAJOR "2020")
 set(PROJECT_VERSION_MINOR "0")
 set(PROJECT_VERSION_PATCH "0")
 set(PROJECT_DESCRIPTION  "A code used to showcase numerical methods.")
 set(PROJECT_AUTHOR  "Francois Roy")
-set(PROJECT_URL  "https://bitbucket.org/frnsroy/numerical")
+set(PROJECT_URL  "https://github.com/frRoy/Numerical")
 set (CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -33,7 +33,7 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 # set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_BUILD_TYPE Debug)  # for valgrind target
+set(CMAKE_BUILD_TYPE Debug)
 # Debugging Options
 set (CMAKE_VERBOSE_MAKEFILE 0) # Use 1 for debugging, 0 otherwise.
 
@@ -91,9 +91,6 @@ if(CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_link_libraries(coverage_config INTERFACE --coverage)
   endif()
 endif()
-
-
-
 
 
 # configure a header file to pass some of the CMake settings

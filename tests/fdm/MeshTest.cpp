@@ -29,7 +29,7 @@ double test_lengths_2d( std::vector<std::vector<double>> lengths) {
 }
 /*!
 */
-double test_coordinates_3d( std::vector<std::vector<double>> lengths) {
+double test_lengths_3d( std::vector<std::vector<double>> lengths) {
     Mesh m = Mesh(lengths, 0.1, 1.1, {2, 3, 4}, 22);
     // m.coordinates();
     return m.dx()[2];
@@ -119,6 +119,26 @@ std::vector<int> test_boundaries(int dim=1){
     }
     return out; 
 }
+/**
+*
+*/
+std::vector<Eigen::Matrix<double, 3, 1>> test_coordinates(int dim){
+    std::vector<Eigen::Matrix<double, 3, 1>> out;
+    if(dim == 1){
+        Mesh m = Mesh({{0.0, 1.0}}, 0.1, 1.1, {10}, 22);
+        out = m.coordinates();
+    }
+    else if(dim == 2){
+        Mesh m = Mesh({{0.0, 1.0}, {0.0, 1.0}}, 0.1, 1.1, {2, 3}, 22);
+        out = m.coordinates();
+    }
+    else{  // dim =3
+        Mesh m = Mesh({{0.0, 1.0}, {0.0, 1.0}, {0.0, 1.0}}, 0.1, 1.1, 
+            {2, 3, 4}, 22);
+        out = m.coordinates();
+    }
+    return out;
+}
 
 
 }  // namespace
@@ -127,7 +147,7 @@ TEST_CASE( "Mesh tests are computed", "[mesh]" )
 {
   REQUIRE( test_lengths_1d({{0.1, 0.2}}) == Approx(0.1/20.0) );
   REQUIRE( test_lengths_2d({{0.1, 0.2}, {0.3, 0.4}}) == Approx(0.1/3.0) );
-  REQUIRE( test_coordinates_3d({{0.0, 0.1}, {0.0, 0.1}, {0.0, 0.1}}) == 
+  REQUIRE( test_lengths_3d({{0.0, 0.1}, {0.0, 0.1}, {0.0, 0.1}}) == 
     Approx(0.1/4.0) );
   REQUIRE_THROWS_WITH( test_lengths_1d({{0.1, 0.2}, {0.3, 0.4}}), 
     Catch::Contains( "n and lengths" ) && Catch::Contains( "different" ) );
@@ -187,4 +207,15 @@ TEST_CASE("Mesh: Test boundaries", "[boundaries]")
   CHECK(test_boundaries(1) == bnd_1);
   CHECK(test_boundaries(2) == bnd_2);
   CHECK(test_boundaries(3) == bnd_3);
+}
+TEST_CASE("Mesh: Test coordinates", "[coordinates]")
+{  
+    std::vector<Eigen::Matrix<double, 3, 1>> coords;
+    std::vector<double> c1 = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 
+                              0.6, 0.7, 0.8, 0.9, 1.0};
+    coords = test_coordinates(1);
+    // spdlog::info("{}", coords[0][1]);
+    for (int i; i<coords.size(); i++){
+        CHECK(coords[i][0] == Approx(c1[i]));
+    }
 }

@@ -34,5 +34,5 @@ double test_default() {
 
 TEST_CASE( "Finite difference problem tests", "[fdm problem]" )
 {
-  REQUIRE( test_default() == 3 );
+  REQUIRE( test_default() == 2 );
 }

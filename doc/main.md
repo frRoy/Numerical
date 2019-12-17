@@ -3,14 +3,15 @@
 Overview                {#overview}
 ========
 
-Follow this link to get to the [repository](https://github.com/dbeat/numerical)
+Use classic scalar PDEs as benchmarks to different numerical methods, namely:
 
-*   [Installation](#installation)
-*   [Usage](#usage)
-*	[Finite Difference Method](#fdm)
+* The finite difference method
+* The finite element method
+* The finite volume method
+
+The code used in this project is available at 
+[https://github.com/frRoy/Numerical](https://github.com/frRoy/Numerical)
 
 ## Installation ##          {#installation}
 
 ## Usage ##          {#usage}
-
-## Finite Difference Method ##           {#fdm}

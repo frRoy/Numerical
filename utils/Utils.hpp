@@ -13,7 +13,7 @@
 namespace utils
 {
 
-/*!
+/**
 * Returns True if two Eigen::DenseBase are element-wise equal within a 
 * tolerance.
 * The tolerance values are positive, typically very small numbers. The 
@@ -39,7 +39,7 @@ bool all_close(
             <= (atol + rtol * b.derived().array().abs())).all();
 }
 
-/*!
+/**
 *  Creates a vector of evenly spaced numbers.
 *
 * @param a The first element.
