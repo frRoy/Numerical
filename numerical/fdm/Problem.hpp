@@ -86,6 +86,14 @@ public:
         }
     }
     /**
+    *
+    * @param boundary The boundary selection.
+    * @return The boundary type of the selected boundary,
+    */
+    int bc_type(int boundary){
+        return m_bc_types[boundary];
+    }
+    /**
     * User defined function: back boundary.
     * 
     * Back boundary value, i.e. at z = length[2][0]. Only for 3D models.
@@ -113,22 +121,22 @@ public:
         return 0.0;
     }
     /**
-    *  Set the value of the diagonal vector at the indices of the boundary
+    *  Set the value of the RHS vector at the indices of the boundary
     *  nodes.
     *
     *  @param boundary The boundary, e.g. 0 = left, 1 = right ... 
-    *  @param diagonal The diagonal vector.
+    *  @param rhs The rhs vector.
     *  @param t The discrete time.
     */
-    void diagonal_bc(int boundary, Vec& diagonal, T t){
+    void rhs_bc(int boundary, Vec& rhs, T t){
         // TODO: This is just a test with user functions
         Coord c = coordinates();
         if(boundary == 0){  // left
             std::vector<int> ind = m_mesh->left();
             if (m_bc_types[0] == 0){  // Dirichlet
                 for(int i=0; i<ind.size(); i++){
-                    diagonal[ind[i]] = 1.0;
-                    // diagonal[ind[i]] = left(c[ind[i]][1], c[ind[i]][2], t);
+                    rhs[ind[i]] = 1.0;
+                    // rhs[ind[i]] = left(c[ind[i]][1], c[ind[i]][2], t);
                 }
             } else if(m_bc_types[0] == 1){  // Neumann
                 // to implement
@@ -141,8 +149,8 @@ public:
             std::vector<int> ind = m_mesh->right();
             if (m_bc_types[0] == 0){  // Dirichlet
                 for(int i=0; i<ind.size(); i++){
-                    diagonal[ind[i]] = 1.0;
-                    // diagonal[ind[i]] = right(c[ind[i]][1], c[ind[i]][2], t);
+                    rhs[ind[i]] = 1.0;
+                    // rhs[ind[i]] = right(c[ind[i]][1], c[ind[i]][2], t);
                 }
             } else if(m_bc_types[0] == 1){  // Neumann
                 // to implement
@@ -182,7 +190,7 @@ public:
         return m_mesh->dx();
     }
     /**
-    * User fefined function: front boundary.
+    * User defined function: front boundary.
     *
     * Front boundary value, i.e. at z = length[2][0]. Only for 3D models.
     *
@@ -195,14 +203,13 @@ public:
         return 0.0;
     }
     /**
-    * Initial  value.
+    * User defined function: initial  value.
     *
-    * @param x The \f$x\f$-coordinate of the mesh node.
-    * @param y The \f$y\f$-coordinate of the mesh node.
-    * @param z The \f$z\f$-coordinate of the mesh node.
+    * @param x The \f$x\f$-, \f$y\f$-, and \f$z\f$-coordinates of the mesh 
+    *    node.
     * @return The initial value at a specified mesh location.
     */
-    virtual T initial_value(T x, T y, T z){
+    virtual T initial_value(const Eigen::Matrix<T, 3, 1>& x){
         return 0.0;
     }
     /**
@@ -253,19 +260,18 @@ public:
     /**
     * @return The total number of discrete time steps.
     */
-    int nt(){
+    int n_t(){
         return m_params->nt;
     }
     /**
     *  Get the reference solution at a specified mesh location.
     *
-    * @param x The \f$x\f$-coordinate of the mesh node.
-    * @param y The \f$y\f$-coordinate of the mesh node.
-    * @param z The \f$z\f$-coordinate of the mesh node.
+    * @param x The \f$x\f$-, \f$y\f$-, and \f$z\f$-coordinates of the mesh 
+    *    node.
     * @param t The discrete time.
     * @return The reference solution at a specified mesh location.
     */
-    virtual T reference(T x, T y, T z, T t){
+    virtual T reference(const Eigen::Matrix<T, 3, 1>& x, T t){
         return 0.0;
     }
     /**
@@ -285,26 +291,36 @@ public:
     /**
     *  Get the computed solution at a specified mesh location.
     *
-    * @param x The \f$x\f$-coordinate of the mesh node.
-    * @param y The \f$y\f$-coordinate of the mesh node.
-    * @param z The \f$z\f$-coordinate of the mesh node.
+    * @param x The \f$x\f$-, \f$y\f$-, and \f$z\f$-coordinates of the mesh 
+    *    node.
     * @param t The discrete time.
     * @return The computed solution at a specified mesh location.
     */
-    virtual T solution(T x, T y, T z, T t){
+    virtual T solution(const Eigen::Matrix<T, 3, 1>& x, T t){
         return 0.0;
     }
     /**
     * User defined function: source term.
     *
-    * @param x The \f$x\f$-coordinate of the mesh node.
-    * @param y The \f$y\f$-coordinate of the mesh node.
-    * @param z The \f$z\f$-coordinate of the mesh node.
+    * @param x The \f$x\f$-, \f$y\f$-, and \f$z\f$-coordinates of the mesh 
+    *    node.
     * @param t The discrete time.
     * @return The source term at a specified mesh location.
     */
-    virtual T source(T x, T y, T z, T t){
+    virtual T source(const Eigen::Matrix<T, 3, 1>& x, T t){
         return 0.0;
+    }
+    /**
+    * @return The theta parameter for the finite difference scheme. 
+    */
+    T theta(){
+        return m_params->theta;
+    }
+    /**
+    *
+    */
+    Vec t(){
+        return m_mesh->t();
     }
     /**
     * User defined function: top boundary.
@@ -318,6 +334,22 @@ public:
     */
     virtual T top(T x, T z, T t){
         return 0.0;
+    }
+    /**
+    *
+    *  @return The initial value vector.
+    */
+    Vec u_0(){
+        int num = n();
+        Vec u_0(num), x(num), y(num), z(num);
+        Coord coords = coordinates();
+        for(int i=0; i<num; i++) {
+            x[i] = coords[i][0];
+            y[i] = coords[i][1];
+            z[i] = coords[i][2];
+            u_0[i] = initial_value(coords[i]);
+        } 
+        return u_0;
     }
 };
 

@@ -12,6 +12,7 @@ namespace
 {
 
 typedef Eigen::SparseMatrix<double> SpMat;
+typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vec;
 typedef Eigen::Triplet<double> T;
 
 T trip = T(1,1,3.0);
@@ -26,7 +27,6 @@ bool test_solver(){
     numerical::fdm::SparseSolver<double> s = 
         numerical::fdm::SparseSolver<double>(p);
     s.solve();
-    s.assemble_a();
     delete params;
     delete p;
     return true;

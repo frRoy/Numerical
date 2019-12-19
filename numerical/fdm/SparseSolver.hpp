@@ -9,8 +9,10 @@
 
 #include <vector>
 #include <Eigen/SparseCore>
+#include<Eigen/SparseCholesky>
 #include "spdlog/spdlog.h"
 #include "Problem.hpp"
+#include <iostream>
 
 namespace numerical {
 
@@ -27,23 +29,21 @@ typedef Eigen::Triplet<T> Trip;
 typedef Eigen::Matrix<T, Eigen::Dynamic, 1> Vec;
 typedef std::vector<Eigen::Matrix<T, 3, 1>> Coord;
 private:
-  SpMat* m_A;
-  Vec* m_b;
-  Vec* m_u;
+  SpMat m_A;
+  Vec m_b;
+  Vec m_u;
   Problem<T>* m_problem;
 public:
   SparseSolver(Problem<T>* problem)
     : m_problem(problem)
     {
         int n = m_problem->n();
-        m_A = new SpMat(n, n);
-        m_b = new Vec(n);
-        m_u = new Vec(n);
+        m_A = SpMat(n, n);
+        m_b = Vec(n);
+        m_b = Eigen::VectorXd::Zero(n);
+        m_u = m_problem->u_0();
   }
   ~SparseSolver(){
-      delete m_A;
-      delete m_b;
-      delete m_u;
   }
   /**
   * Assembles the sparse coefficient matrix \f$\mathbf{A}\f$. The matrix is 
@@ -54,15 +54,16 @@ public:
   * The diagonals of the matrix \f$\mathbf{A}\f$ is are filled by vectorization
   * of the loops for efficiency.
   */
-  void assemble_a(){
+  void assemble_a(T t=0.0){
     // define variables
     int n, n_x, n_y, n_z, n_t;
-    T dx, dy, dz, dt, t=0.0;
+    T dx, dy, dz, dt, theta;
+    theta = m_problem->theta();
     n_x = m_problem->n_x();
     n_y = m_problem->n_y();
     n_z = m_problem->n_z();
     n = m_problem->n();
-    n_t = m_problem->nt();
+    n_t = m_problem->n_t();
     dt = m_problem->dt();
     dx = m_problem->dx()[0];
     dy = m_problem->dx()[1];
@@ -86,7 +87,7 @@ public:
     // The loops are vectorized for efficiency -- see bench/performances
     if (m_problem->dim() == 1){
         spdlog::info("1D");
-        T d = dt/dx/dx;
+        T d = dt/dx/dx*theta/2.0;
         diagonal[0] = 0.0;
         diagonal[n - 1] = 0.0;
         diagonal.segment(1, n-2) += d * alpha.segment(2, n-2);
@@ -97,13 +98,21 @@ public:
         upper.segment(1, (n-1)-1) += -d * alpha.segment(2, n-2);
         upper.segment(1, (n-1)-1) += -d * alpha.segment(1, n-2);
         // boundary conditions
-        // spdlog::info("before: {}", diagonal[0]);
-        m_problem->diagonal_bc(0, diagonal, t); // left
-        // spdlog::info("after: {}", diagonal[0]);
-        m_problem->diagonal_bc(1, diagonal, t); // right
-        upper[0] = 0.0;
-        lower[(n - 1)-1] = 0.0;
-        for(int i=1; i<n - 1; i++){
+        if(m_problem->bc_type(0) == 0){ // left Dirichlet
+            diagonal[0] = 1.0;  // TODO get indices from mesh
+            upper[0] = 0.0;
+          } else{  // Neumann
+            diagonal[0] = d * 2.0 * alpha[0];  // TODO get indices from mesh
+            upper[0] = -d * 2.0 * alpha[0];
+          }
+        if(m_problem->bc_type(1) == 0){ // right Dirichlet
+            diagonal[n-1] = 1.0;  // TODO get indices from mesh
+            lower[(n - 1)-1] = 0.0;
+          } else {  // Neumann
+            diagonal[n-1] = d * 2.0 * alpha[n-1];  // TODO get indices from mesh
+            lower[(n - 1)-1] = -d * 2.0 * alpha[n-1];
+          }
+        for(int i=0; i<n; i++){
             trp.push_back(Trip(i,i,diagonal[i]));    
         }
         // std::cout << lower << "\n";
@@ -115,7 +124,7 @@ public:
             trp.push_back(Trip(i,i+1,upper[i]));    
         }
         // create sparse matrix
-        m_A->setFromTriplets(trp.begin(), trp.end());
+        m_A.setFromTriplets(trp.begin(), trp.end());
     } else if (m_problem->dim() == 2){
         spdlog::info("2D");
     } else {  // 3D
@@ -140,24 +149,98 @@ public:
   * \f]
   *
   */
-  void assemble_b(int n){
-
+  void assemble_b(T t, Vec& u_n){
+      // define variables
+      int n, n_x, n_y, n_z, n_t;
+      T dx, dy, dz, dt, theta;
+      theta = m_problem->theta();
+      n_x = m_problem->n_x();
+      n_y = m_problem->n_y();
+      n_z = m_problem->n_z();
+      n = m_problem->n();
+      n_t = m_problem->n_t();
+      dt = m_problem->dt();
+      dx = m_problem->dx()[0];
+      dy = m_problem->dx()[1];
+      dz = m_problem->dx()[2];
+      Vec alpha(n), f_n(n), f(n), x(n), y(n), z(n), ix(n_x  +1), iy(n_y + 1), 
+          iz(n_z + 1), it(n_t + 1);
+      // index sets
+      ix.setLinSpaced(n_x + 1, 0, n_x);
+      Coord coords = m_problem->coordinates();
+      // define the diffusion coefficient and source term only they depend
+      // on time
+      for(int i=0; i<alpha.size(); i++) {
+          x[i] = coords[i][0];
+          y[i] = coords[i][1];
+          z[i] = coords[i][2];
+          alpha[i] = m_problem->alpha(coords[i], t);
+          f_n[i] = m_problem->source(coords[i], t);
+          f[i] = m_problem->source(coords[i], t + n_t * dt);
+      }
+      if (m_problem->dim() == 1){
+          spdlog::info("1D");
+          T d = dt/dx/dx*(1.0 - theta) / 2.0;
+          m_b.segment(1, n-2) = u_n.segment(1, n-2);
+          m_b.segment(1, n-2) += d * ((alpha.segment(2, n-2) + 
+            alpha.segment(1, n-2)).array() * (u_n.segment(2, n-2) - 
+            u_n.segment(1, n-2)).array()).matrix();
+          m_b.segment(1, n-2) -= d * ((alpha.segment(1, n-2) + 
+            alpha.segment(0, n-2)).array() * (u_n.segment(1, n-2) - 
+            u_n.segment(0, n-2)).array()).matrix();
+          m_b.segment(1, n-2) += dt * theta * f.segment(1, n-2);
+          m_b.segment(1, n-2) += dt * (1.0 -theta) * f_n.segment(1, n-2);
+          // Boundary conditions
+          // TODO use m_problem->rhs_bc(bnd, b)
+          if(m_problem->bc_type(0) == 0){ // left Dirichlet
+              m_b[0] = m_problem->left(0., 0., t + n_t * dt);
+            } else {  // Neumann
+              // TODO
+            }
+          if(m_problem->bc_type(1) == 0){ // right Dirichlet
+              m_b[n-1] = m_problem->right(0., 0., t + n_t * dt);
+            } else {  // Neumann
+              // TODO
+            }
+      } else if (m_problem->dim() == 2){
+        spdlog::info("2D");
+      } else {  // 3D
+        spdlog::info("3D");
+      }
   }
   /*
   * Solve the time dependent problem.
   */
-  virtual Eigen::VectorXf solve(){
-      //  Set initial condition
-      //for(int i=0; i<u_n.size(); i++){
-          // u_n[i] = m_params.init(m_x[i], 0., 0.);    
-      //}
-      // std::cout << u_n << "\n";
-
-      // spdlog::info("{}", m_problem->left(1.0, 1.0, 1.0));
+  virtual void solve(){
+      // Set initial condition
+      Vec u_n = m_problem->u_0();
+      Vec u = Vec::Zero(m_problem->n());
+      int n_t = m_problem->n_t();
+      T t;
+      Vec t_list = m_problem->t();
+      assemble_a();
+      std::cout << m_A;
+      Eigen::SimplicialLDLT<SpMat> solver;
       // Time loop
-
-      Eigen::VectorXf solution = Eigen::VectorXf::Unit(4,1);
-      return solution;
+      for(int n=0; n<n_t; n++){
+        t = t_list[n]; 
+        assemble_b(t, u_n);
+        // Solve
+        solver.compute(m_A);
+        if(solver.info()!=Eigen::Success) {
+            spdlog::error("decomposition failed");
+            spdlog::error("{}", solver.info());
+            return;
+        }
+        u = solver.solve(m_b);
+        if(solver.info()!=Eigen::Success) {
+            spdlog::error("solving failed");
+            spdlog::error("{}", solver.info());
+            return;
+        }
+        spdlog::info("{}", u[3]);
+        u_n = u;
+      }
   }
 };
 
