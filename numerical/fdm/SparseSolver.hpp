@@ -8,6 +8,7 @@
 #define SPARSESOLVER_H
 
 #include <vector>
+#include <math.h> 
 #include <Eigen/SparseCore>
 #include<Eigen/SparseCholesky>
 #include "spdlog/spdlog.h"
@@ -30,18 +31,44 @@ typedef Eigen::Matrix<T, Eigen::Dynamic, 1> Vec;
 typedef std::vector<Eigen::Matrix<T, 3, 1>> Coord;
 private:
   SpMat m_A;
-  Vec m_b;
-  Vec m_u;
   Problem<T>* m_problem;
+  int m_n, m_n_x, m_n_y, m_n_z, m_n_t, m_dim;
+  T m_dt, m_dx, m_dy, m_dz, m_theta;
+  Vec m_alpha, m_x, m_y, m_z, m_b, m_u, m_f, m_f_n;
 public:
   SparseSolver(Problem<T>* problem)
     : m_problem(problem)
-    {
-        int n = m_problem->n();
-        m_A = SpMat(n, n);
-        m_b = Vec(n);
-        m_b = Eigen::VectorXd::Zero(n);
+    {  
+        m_n = m_problem->n();
+        m_dim = m_problem->dim();
+        m_A = SpMat(m_n, m_n);
+        m_b = Vec::Zero(m_n);
         m_u = m_problem->u_0();
+        T dx, dy, dz, dt, theta;
+        theta = m_problem->theta();
+        m_n_x = m_problem->n_x();
+        m_n_y = m_problem->n_y();
+        m_n_z = m_problem->n_z();
+        m_n_t = m_problem->n_t();
+        m_dt = m_problem->dt();
+        m_dx = m_problem->dx()[0];
+        m_dy = m_problem->dx()[1];
+        m_dz = m_problem->dx()[2];
+        m_theta = m_problem->theta();
+        m_alpha = Vec::Zero(m_n);
+        m_f = Vec::Zero(m_n);
+        m_f_n = Vec::Zero(m_n);
+        m_x = Vec::Zero(m_n);
+        m_y = Vec::Zero(m_n);
+        m_z = Vec::Zero(m_n);
+        const Coord& coords = m_problem->coordinates();
+        // define x, y, z, and alpha
+        for(int i=0; i<m_n; i++) {
+            m_x[i] = coords[i][0];
+            m_y[i] = coords[i][1];
+            m_z[i] = coords[i][2];
+            m_alpha[i] = m_problem->alpha(coords[i], 0.0);
+        }
   }
   ~SparseSolver(){
   }
@@ -54,81 +81,60 @@ public:
   * The diagonals of the matrix \f$\mathbf{A}\f$ is are filled by vectorization
   * of the loops for efficiency.
   */
-  void assemble_a(T t=0.0){
-    // define variables
-    int n, n_x, n_y, n_z, n_t;
-    T dx, dy, dz, dt, theta;
-    theta = m_problem->theta();
-    n_x = m_problem->n_x();
-    n_y = m_problem->n_y();
-    n_z = m_problem->n_z();
-    n = m_problem->n();
-    n_t = m_problem->n_t();
-    dt = m_problem->dt();
-    dx = m_problem->dx()[0];
-    dy = m_problem->dx()[1];
-    dz = m_problem->dx()[2];
-    Vec alpha(n), x(n), y(n), z(n), ix(n_x  +1), iy(n_y + 1), iz(n_z + 1),
-        it(n_t + 1);
-    // index sets
-    ix.setLinSpaced(n_x + 1, 0, n_x);
-    Coord coords = m_problem->coordinates();
-    // define the diffusion coefficient, x, y and z
-    for(int i=0; i<alpha.size(); i++) {
-        x[i] = coords[i][0];
-        y[i] = coords[i][1];
-        z[i] = coords[i][2];
-        alpha[i] = m_problem->alpha(coords[i], t);
-    }
+  void assemble_a(){
     std::vector<Trip> trp;
-    Vec diagonal = Eigen::VectorXd::Constant(n, 1.0);
-    Vec lower = Eigen::VectorXd::Zero(n - 1);
-    Vec upper = Eigen::VectorXd::Zero(n - 1);
+    Vec diagonal = Vec::Constant(m_n, 1.0);
+    Vec lower = Vec::Zero(m_n - 1);
+    Vec upper = Vec::Zero(m_n - 1);
     // The loops are vectorized for efficiency -- see bench/performances
-    if (m_problem->dim() == 1){
-        spdlog::info("1D");
-        T d = dt/dx/dx*theta/2.0;
+    if (m_dim == 1){
+        // spdlog::info("1D");
+        T d = m_dt/m_dx/m_dx*m_theta/2.0;
+        spdlog::info("dx: {}, dt: {}, theta: {}, alpha: {}", 
+                      m_dx, m_dt, m_theta, m_alpha[0]);
+        spdlog::info("Fx: {}", d*m_alpha[0]*2.0);
         diagonal[0] = 0.0;
-        diagonal[n - 1] = 0.0;
-        diagonal.segment(1, n-2) += d * alpha.segment(2, n-2);
-        diagonal.segment(1, n-2) += d * 2.0 * alpha.segment(1, n-2);
-        diagonal.segment(1, n-2) += d * alpha.segment(0, n-2);
-        lower.segment(0, (n-1)-1) += -d * alpha.segment(1, n-2);
-        lower.segment(0, (n-1)-1) += -d * alpha.segment(0, n-2);
-        upper.segment(1, (n-1)-1) += -d * alpha.segment(2, n-2);
-        upper.segment(1, (n-1)-1) += -d * alpha.segment(1, n-2);
+        diagonal[m_n - 1] = 0.0;
+        diagonal.segment(1, m_n-2) += d * m_alpha.segment(2, m_n-2);
+        diagonal.segment(1, m_n-2) += d * 2.0 * m_alpha.segment(1, m_n-2);
+        diagonal.segment(1, m_n-2) += d * m_alpha.segment(0, m_n-2);
+        lower.segment(0, (m_n-1)-1) += -d * m_alpha.segment(1, m_n-2);
+        lower.segment(0, (m_n-1)-1) += -d * m_alpha.segment(0, m_n-2);
+        upper.segment(1, (m_n-1)-1) += -d * m_alpha.segment(2, m_n-2);
+        upper.segment(1, (m_n-1)-1) += -d * m_alpha.segment(1, m_n-2);
         // boundary conditions
         if(m_problem->bc_type(0) == 0){ // left Dirichlet
-            diagonal[0] = 1.0;  // TODO get indices from mesh
+            diagonal[0] = 1.0;
             upper[0] = 0.0;
-          } else{  // Neumann
-            diagonal[0] = d * 2.0 * alpha[0];  // TODO get indices from mesh
-            upper[0] = -d * 2.0 * alpha[0];
+          } else{  // left Neumann
+            diagonal[0] = d * 2.0 * m_alpha[0];
+            upper[0] = -d * 2.0 * m_alpha[0];
           }
         if(m_problem->bc_type(1) == 0){ // right Dirichlet
-            diagonal[n-1] = 1.0;  // TODO get indices from mesh
-            lower[(n - 1)-1] = 0.0;
-          } else {  // Neumann
-            diagonal[n-1] = d * 2.0 * alpha[n-1];  // TODO get indices from mesh
-            lower[(n - 1)-1] = -d * 2.0 * alpha[n-1];
+            diagonal[m_n-1] = 1.0;
+            lower[(m_n - 1)-1] = 0.0;
+          } else {  // right Neumann
+            diagonal[m_n-1] = d * 2.0 * m_alpha[m_n-1];
+            lower[(m_n - 1)-1] = -d * 2.0 * m_alpha[m_n-1];
           }
-        for(int i=0; i<n; i++){
+        // insert diagonals in A
+        for(int i=0; i<m_n; i++){
             trp.push_back(Trip(i,i,diagonal[i]));    
         }
-        // std::cout << lower << "\n";
-        for(int i=1; i<n - 1; i++){
+        for(int i=1; i<m_n - 1; i++){
             trp.push_back(Trip(i,i-1,lower[i-1]));    
         }
-        // std::cout << upper << "\n";
-        for(int i=1; i<n - 1; i++){
+        for(int i=1; i<m_n - 1; i++){
             trp.push_back(Trip(i,i+1,upper[i]));    
         }
         // create sparse matrix
         m_A.setFromTriplets(trp.begin(), trp.end());
-    } else if (m_problem->dim() == 2){
-        spdlog::info("2D");
+    } else if (m_dim == 2){
+        // spdlog::info("2D");
+        // TODO
     } else {  // 3D
-        spdlog::info("3D");
+        // spdlog::info("3D");
+        // TODO
     }
   }
   /**
@@ -150,78 +156,55 @@ public:
   *
   */
   void assemble_b(T t, Vec& u_n){
-      // define variables
-      int n, n_x, n_y, n_z, n_t;
-      T dx, dy, dz, dt, theta;
-      theta = m_problem->theta();
-      n_x = m_problem->n_x();
-      n_y = m_problem->n_y();
-      n_z = m_problem->n_z();
-      n = m_problem->n();
-      n_t = m_problem->n_t();
-      dt = m_problem->dt();
-      dx = m_problem->dx()[0];
-      dy = m_problem->dx()[1];
-      dz = m_problem->dx()[2];
-      Vec alpha(n), f_n(n), f(n), x(n), y(n), z(n), ix(n_x  +1), iy(n_y + 1), 
-          iz(n_z + 1), it(n_t + 1);
-      // index sets
-      ix.setLinSpaced(n_x + 1, 0, n_x);
-      Coord coords = m_problem->coordinates();
-      // define the diffusion coefficient and source term only they depend
-      // on time
-      for(int i=0; i<alpha.size(); i++) {
-          x[i] = coords[i][0];
-          y[i] = coords[i][1];
-          z[i] = coords[i][2];
-          alpha[i] = m_problem->alpha(coords[i], t);
-          f_n[i] = m_problem->source(coords[i], t);
-          f[i] = m_problem->source(coords[i], t + n_t * dt);
+      const Coord& coords = m_problem->coordinates();
+      // TODO define the diffusion coefficient and source term only if they
+      // depend on time
+      for(int i=0; i<m_n; i++) {
+          m_alpha[i] = m_problem->alpha(coords[i], t);
+          m_f_n[i] = m_problem->source(coords[i], t);
+          m_f[i] = m_problem->source(coords[i], t + m_n_t * m_dt);
       }
-      if (m_problem->dim() == 1){
-          spdlog::info("1D");
-          T d = dt/dx/dx*(1.0 - theta) / 2.0;
-          m_b.segment(1, n-2) = u_n.segment(1, n-2);
-          m_b.segment(1, n-2) += d * ((alpha.segment(2, n-2) + 
-            alpha.segment(1, n-2)).array() * (u_n.segment(2, n-2) - 
-            u_n.segment(1, n-2)).array()).matrix();
-          m_b.segment(1, n-2) -= d * ((alpha.segment(1, n-2) + 
-            alpha.segment(0, n-2)).array() * (u_n.segment(1, n-2) - 
-            u_n.segment(0, n-2)).array()).matrix();
-          m_b.segment(1, n-2) += dt * theta * f.segment(1, n-2);
-          m_b.segment(1, n-2) += dt * (1.0 -theta) * f_n.segment(1, n-2);
+      if (m_dim == 1){
+          // spdlog::info("1D");
+          T d = m_dt/m_dx/m_dx*(1.0 - m_theta) / 2.0;
+          // spdlog::info("d: {}", d);
+          m_b.segment(1, m_n-2) = u_n.segment(1, m_n-2);
+          m_b.segment(1, m_n-2) += d * ((m_alpha.segment(2, m_n-2) + 
+            m_alpha.segment(1, m_n-2)).array() * (u_n.segment(2, m_n-2) - 
+            u_n.segment(1, m_n-2)).array()).matrix();
+          m_b.segment(1, m_n-2) -= d * ((m_alpha.segment(1, m_n-2) + 
+            m_alpha.segment(0, m_n-2)).array() * (u_n.segment(1, m_n-2) - 
+            u_n.segment(0, m_n-2)).array()).matrix();
+          m_b.segment(1, m_n-2) += m_dt * m_theta * m_f.segment(1, m_n-2);
+          m_b.segment(1, m_n-2) += m_dt * (1.0 -m_theta) * 
+            m_f_n.segment(1, m_n-2);
           // Boundary conditions
-          // TODO use m_problem->rhs_bc(bnd, b)
-          if(m_problem->bc_type(0) == 0){ // left Dirichlet
-              m_b[0] = m_problem->left(0., 0., t + n_t * dt);
-            } else {  // Neumann
-              // TODO
-            }
-          if(m_problem->bc_type(1) == 0){ // right Dirichlet
-              m_b[n-1] = m_problem->right(0., 0., t + n_t * dt);
-            } else {  // Neumann
-              // TODO
-            }
-      } else if (m_problem->dim() == 2){
-        spdlog::info("2D");
+          m_problem->rhs_bc(m_b, t);
+      } else if (m_dim == 2){
+        // spdlog::info("2D");
+        // TODO
       } else {  // 3D
-        spdlog::info("3D");
+        // spdlog::info("3D");
+        // TODO
       }
   }
   /*
   * Solve the time dependent problem.
+  * TODO: Create a VTKFile class to store the solution in a vtu file at each 
+  * time steps
   */
   virtual void solve(){
       // Set initial condition
       Vec u_n = m_problem->u_0();
       Vec u = Vec::Zero(m_problem->n());
       int n_t = m_problem->n_t();
-      T t;
+      T t, l2norm=0.0;
       Vec t_list = m_problem->t();
       assemble_a();
-      std::cout << m_A;
+      // std::cout << m_A;
       Eigen::SimplicialLDLT<SpMat> solver;
       // Time loop
+      T e=0.0;
       for(int n=0; n<n_t; n++){
         t = t_list[n]; 
         assemble_b(t, u_n);
@@ -238,9 +221,19 @@ public:
             spdlog::error("{}", solver.info());
             return;
         }
-        spdlog::info("{}", u[3]);
+        // spdlog::info("b[1]: {}, b[n-2]: {}", m_b[1], m_b[m_n-2]);
+        // TODO Save result in file here.
+        const Coord& coords = m_problem->coordinates();
+        //spdlog::info("exact solution: {}, computed solution: {}", 
+        //    m_problem->reference(coords[4], t+m_dt), u[4]);
+        
+        for(int i=0;i<m_n;i++){
+            e += pow(m_problem->reference(coords[i], t+m_dt)-u[i], 2.0); 
+        }
         u_n = u;
       }
+      l2norm += pow(m_dx*m_dt*e, 0.5);
+      spdlog::info("L2-norm: {}", l2norm);
   }
 };
 

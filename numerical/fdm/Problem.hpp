@@ -7,7 +7,7 @@
 #ifndef PROBLEM_H
 #define PROBLEM_H
 
-#include <map>
+// #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -27,12 +27,22 @@ template <typename T>
 class Problem {
 typedef Eigen::Matrix<T, Eigen::Dynamic, 1> Vec;
 typedef std::vector<Eigen::Matrix<T, 3, 1>> Coord;
+// function pointer to member functions
+typedef  T (Problem<T>::*fctptr)(T x1, T x2, T time);
 private:
-    int m_dim; // space dimenions of the problem   
+    int m_dim; // space dimenions of the problem 
+    Vec m_t;
+    std::vector<T> m_dx;
+    T m_dt;
 protected:
     Parameters<T>* m_params;  // default parameters
     Mesh<T>* m_mesh;  // mesh
     int m_bc_types[6];  // boundary types (default = Dirichlet)
+    Coord m_coordinates;
+    // array of function pointers to member functions
+    fctptr m_functions[6] = {&Problem<T>::left, &Problem<T>::right,
+                             &Problem<T>::bottom, &Problem<T>::top,
+                             &Problem<T>::back, &Problem<T>::front};
 public:
     Problem(Parameters<T>* params): 
       m_params(params),
@@ -42,10 +52,15 @@ public:
   	    // define mesh
   	    m_mesh = new Mesh<T>(m_params->lengths, m_params->t0, m_params->tend, 
           m_params->n, m_params->nt);
+        m_coordinates = m_mesh->coordinates();  // constant
+        m_t = m_mesh->t();
+        m_dx = m_mesh->dx();
+        m_dt = m_mesh->dt();
     }
     virtual ~Problem(){
         delete m_mesh;
     }
+
     /**
     * Diffusion coefficient value. The default is a constant obtained from 
     * m_params.
@@ -62,7 +77,7 @@ public:
     *  @return The mesh coordinates.
     */
     std::vector<Eigen::Matrix<T, 3, 1>> coordinates(){
-        return m_mesh->coordinates();
+        return m_coordinates;
     }
     /**
     * Set the boundary types, with the following code:
@@ -124,51 +139,45 @@ public:
     *  Set the value of the RHS vector at the indices of the boundary
     *  nodes.
     *
-    *  @param boundary The boundary, e.g. 0 = left, 1 = right ... 
     *  @param rhs The rhs vector.
     *  @param t The discrete time.
     */
-    void rhs_bc(int boundary, Vec& rhs, T t){
-        // TODO: This is just a test with user functions
-        Coord c = coordinates();
-        if(boundary == 0){  // left
-            std::vector<int> ind = m_mesh->left();
-            if (m_bc_types[0] == 0){  // Dirichlet
-                for(int i=0; i<ind.size(); i++){
-                    rhs[ind[i]] = 1.0;
-                    // rhs[ind[i]] = left(c[ind[i]][1], c[ind[i]][2], t);
+    void rhs_bc(Vec& rhs, T t){
+        // boundary node addresses
+        const std::vector<int>& left_nodes = m_mesh->left();
+        const std::vector<int>& right_nodes = m_mesh->right();
+        const std::vector<int>& bottom_nodes = m_mesh->bottom();
+        const std::vector<int>& top_nodes = m_mesh->top();
+        const std::vector<int>& back_nodes = m_mesh->back();
+        const std::vector<int>& front_nodes = m_mesh->front();
+        // array of addresses to specific boundry nodes 
+        std::vector<int> nodes[6] = {
+            left_nodes, right_nodes,
+            bottom_nodes, top_nodes,
+            back_nodes, front_nodes
+            };
+        // indices of the coordinates for each function
+        // 0 for x, 1 for y, 2 for z
+        int ind[6][2] = {{1,2},{1,2},{0,2},{0,2},{0,1},{0,1}};
+        // the number of boundary to set up depend on the dimension
+        int n_bnd = 2 * m_dim;
+        const Coord& c = coordinates();
+        for(int bnd=0; bnd<n_bnd; bnd++){
+            if (m_bc_types[bnd] == 0){  // Dirichlet
+                for(int i=0; i<nodes[bnd].size(); i++){
+                    // the rhs value is equal to the value returned by the
+                    // boundary function
+                    rhs[nodes[bnd][i]] = (this->*m_functions[bnd]) (
+                        c[nodes[bnd][i]][ind[bnd][0]], 
+                        c[nodes[bnd][i]][ind[bnd][1]], 
+                        t);
                 }
-            } else if(m_bc_types[0] == 1){  // Neumann
+            } else if(m_bc_types[bnd] == 1){  // Neumann
                 // to implement
             } else{
                 throw std::invalid_argument(
-                    "Not a valid boundary condition type."
-                    );
+                "Not a valid boundary condition type.");
             }
-        } else if (boundary == 1){  // right
-            std::vector<int> ind = m_mesh->right();
-            if (m_bc_types[0] == 0){  // Dirichlet
-                for(int i=0; i<ind.size(); i++){
-                    rhs[ind[i]] = 1.0;
-                    // rhs[ind[i]] = right(c[ind[i]][1], c[ind[i]][2], t);
-                }
-            } else if(m_bc_types[0] == 1){  // Neumann
-                // to implement
-            } else{
-                throw std::invalid_argument(
-                    "Not a valid boundary condition type."
-                    );
-            }
-        } else if (boundary == 2){  // bottom
-
-        } else if (boundary == 3){  // top
-
-        } else if (boundary == 4){  // back
-
-        } else if (boundary == 5){  // front
-
-        } else{
-            throw std::invalid_argument("Not a valid boundary.");
         }
     }
     /**
@@ -181,13 +190,13 @@ public:
     * @return the constant time increment.
     */
     T dt() {
-        return m_mesh->dt();
+        return m_dt;
     }
     /**
     * @return the spatial increment.
     */
     std::vector<T> dx() {
-        return m_mesh->dx();
+        return m_dx;
     }
     /**
     * User defined function: front boundary.
@@ -320,7 +329,7 @@ public:
     *
     */
     Vec t(){
-        return m_mesh->t();
+        return m_t;
     }
     /**
     * User defined function: top boundary.

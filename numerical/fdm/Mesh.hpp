@@ -80,7 +80,7 @@ public:
         }
         m_t = Vec(m_nt + 1);
         for(int i=0; i<m_nt; ++i){
-        	m_t[i] = i * m_nt;
+        	m_t[i] = i * m_dt;
         }
 	}
     /**

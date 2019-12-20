@@ -34,8 +34,3 @@ Describe methods here.
 Gain in performances if we vectorized the loops... show an example.
 
 ### Message Passing Interface
-
-## References        {#references}
-
-1. H. P. Langtangen and S. Linge. Finite Difference Computing with PDEs: 
-  A Modern Software Approach. Springer, 2017.

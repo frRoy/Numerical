@@ -13,20 +13,37 @@ namespace diffusion {
 typedef numerical::fdm::Parameters<double> Params;
 typedef numerical::fdm::Problem<double> Problem;
 
-// double FDMDiffusionA::alpha(double x, double y, double z, double t){
-//     return m_params.alpha;
-// }
-
+double FDMDiffusionA::left(double y, double z, double t){
+     return 0.0;
+}
+double FDMDiffusionA::right(double y, double z, double t){
+     return 0.0;
+}
+double FDMDiffusionA::source(const Eigen::Matrix<double, 3, 1>& x, double t){
+    std::vector<double> lx = FDMDiffusionA::m_params->lengths[0];
+    double alpha = FDMDiffusionA::alpha(x, t);
+    double length = lx[1] - lx[0];
+    return 5*x[0]*(length - x[0]) + 10.0*alpha*t;
+}
+double FDMDiffusionA::reference(const Eigen::Matrix<double, 3, 1>& x, 
+        double t){
+    std::vector<double> lx = FDMDiffusionA::m_params->lengths[0];
+    double length = lx[1] - lx[0];
+    // spdlog::info("length: {}, x: {}, t: {}", length, x[0], t);
+    return 5.0 * t * x[0] * (length - x[0]);
+}
 
 bool fdm_diffusion_a(){
     Params* p = new Params();
-    spdlog::info("{}", p->alpha);
-    auto out = reference_diffusion_a<double>(0.1, 0.01, 1.0);
-    spdlog::info("{}", out);
+    p->lengths = {{0.0, 1.0}};
+    p->n = {10};
+    p->nt = {5};
+    p->tend = 0.01;
+    p->alpha = 0.01;
     FDMDiffusionA *prob = new FDMDiffusionA(p);
-    spdlog::info("{}\n", prob->dim());
-    double alpha = prob->alpha(0.0, 0.0, 0.0, 0.0);
-    spdlog::info("{}\n", alpha);
+    numerical::fdm::SparseSolver<double> s = 
+        numerical::fdm::SparseSolver<double>(prob);
+    s.solve();
     delete p;
     delete prob;
 	return true;

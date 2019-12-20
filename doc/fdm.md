@@ -17,7 +17,7 @@ for the temporal and spatial mesh.
 
 ## Centered Difference Scheme (space)
 
-Describe the concept here...
+Describe the concept here... see [[1]](#references)
 
 ## \f$\Theta\f$-Scheme (time)
 
@@ -257,3 +257,8 @@ Taking (0, 0) as an example, we have ...
     u_{0, -1} - u_{0, 1} &= 2\Delta x g_{1,1}
     \end{align}
 \f]
+
+## References        {#references}
+
+1. H. P. Langtangen and S. Linge. Finite Difference Computing with PDEs: 
+  A Modern Software Approach. Springer, 2017.
