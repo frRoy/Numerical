@@ -246,6 +246,27 @@ where \f$b_5\f$ is
     2\mathcal{F}_x\Delta xg^{n}_5\right)
 \f]
 
+In order to keep the coefficient matrix symmetric, one may choose to scale
+the fifth row of the augmented system by 0.5, which gives:
+
+\f[
+ [\Theta\mathcal{F}_x, -\Theta Fx, 0, 0, \dots] [u^{n+1}_5] = b_5
+\f]
+
+where \f$b_5\f$ is
+
+\f[
+    b_5 = \frac{1}{2}\left(
+    u^n_5+\left(1-\Theta\right)\left(\mathcal{F}_x\left(2u^n_6 -2u^n_5\right)+
+    \mathcal{F}_y\left(u^n_0 - 2u^n_5 + u^n_{10}\right)\right) +
+    \Theta\left(\Delta tf^{n+1}_5+2\mathcal{F}_x\Delta xg^{n+1}_5\right)+
+    \left(1-\Theta\right)\left(\Delta tf^{n}_5+
+    2\mathcal{F}_x\Delta xg^{n}_5\right)\right)
+\f]
+
+**Note that the coefficient matrix may not be symmetric for heterogeous 
+media.**
+
 At corner points, the norm vector is not well defined. We use average of two
 directional derivatives to get an approximation. 
 

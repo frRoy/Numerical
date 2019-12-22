@@ -22,6 +22,8 @@ namespace fdm {
 
 /**
  * Defines the finite difference problem over the hypercube.
+ * This class only define the 1D diffusion problem with Dirichlet/Neumann 
+ * boundary conditions and heterogenous diffusion coefficient (for now).
  */
 template <typename T>
 class Problem {
@@ -92,12 +94,14 @@ public:
     * 2- bottom
     * 3- top
     * 4- back
-    * 5- top
+    * 5- front
     *
+    *  @param types The type of boundary conditions for all boundaries.
     */
-    void bc_types(int types[6]){
+    void bc_types(const int (&types)[6]){
         for (int i=0; i<6; i++){
             m_bc_types[i] = types[i];
+            // spdlog::info("{}", m_bc_types[i]);
         }
     }
     /**
@@ -136,49 +140,20 @@ public:
         return 0.0;
     }
     /**
-    *  Set the value of the RHS vector at the indices of the boundary
-    *  nodes.
+    * Set the value of the diagonals of the coefficient matrix at the indices 
+    * of the boundary nodes.
     *
-    *  @param rhs The rhs vector.
+    *  @param dia The main diagonal.
+    *  @param lower The lower diagonal.
+    *  @param upper The upper diagonal.
+    *  @param lower_a The second lower diagonal.
+    *  @param upper_a The second upper diagonal.
+    *  @param lower_b The third lower diagonal.
+    *  @param upper_b The third upper diagonal.
     *  @param t The discrete time.
     */
-    void rhs_bc(Vec& rhs, T t){
-        // boundary node addresses
-        const std::vector<int>& left_nodes = m_mesh->left();
-        const std::vector<int>& right_nodes = m_mesh->right();
-        const std::vector<int>& bottom_nodes = m_mesh->bottom();
-        const std::vector<int>& top_nodes = m_mesh->top();
-        const std::vector<int>& back_nodes = m_mesh->back();
-        const std::vector<int>& front_nodes = m_mesh->front();
-        // array of addresses to specific boundry nodes 
-        std::vector<int> nodes[6] = {
-            left_nodes, right_nodes,
-            bottom_nodes, top_nodes,
-            back_nodes, front_nodes
-            };
-        // indices of the coordinates for each function
-        // 0 for x, 1 for y, 2 for z
-        int ind[6][2] = {{1,2},{1,2},{0,2},{0,2},{0,1},{0,1}};
-        // the number of boundary to set up depend on the dimension
-        int n_bnd = 2 * m_dim;
-        const Coord& c = coordinates();
-        for(int bnd=0; bnd<n_bnd; bnd++){
-            if (m_bc_types[bnd] == 0){  // Dirichlet
-                for(int i=0; i<nodes[bnd].size(); i++){
-                    // the rhs value is equal to the value returned by the
-                    // boundary function
-                    rhs[nodes[bnd][i]] = (this->*m_functions[bnd]) (
-                        c[nodes[bnd][i]][ind[bnd][0]], 
-                        c[nodes[bnd][i]][ind[bnd][1]], 
-                        t);
-                }
-            } else if(m_bc_types[bnd] == 1){  // Neumann
-                // to implement
-            } else{
-                throw std::invalid_argument(
-                "Not a valid boundary condition type.");
-            }
-        }
+    void coeffs_bc(Vec& dia, Vec& lower, Vec& upper, Vec& lower_a, 
+        Vec& upper_a, Vec& lower_b, Vec& upper_b, T t=0.0){
     }
     /**
     * @return The spatial dimension of the problem.
@@ -282,6 +257,97 @@ public:
     */
     virtual T reference(const Eigen::Matrix<T, 3, 1>& x, T t){
         return 0.0;
+    }
+    /**
+    *  Set the value of the RHS vector at the indices of the boundary
+    *  nodes.
+    *
+    *  @param rhs The rhs vector.
+    *  @param u_n The solution vector at previous time step.
+    *  @param alpha The rhs vector.
+    *  @param f_n The source vector at privious time step.
+    *  @param f The source vector.
+    *  @param dx The space increment in the \f$x\f$-direction.
+    *  @param dy The space increment in the \f$y\f$-direction.
+    *  @param dz The space increment in the \f$z\f$-direction.
+    *  @param dt The time increment.
+    *  @param theta The scheme coefficient.
+    *  @param t The discrete time.
+    */
+    void rhs_bc(Vec& rhs, Vec& u_n, const Vec& alpha, const Vec& f_n, 
+                const Vec& f, const T dx, const T dy, const T dz,
+                const T dt, const T theta, const T t){
+        // boundary node addresses
+        const std::vector<int>& left_nodes = m_mesh->left();
+        const std::vector<int>& right_nodes = m_mesh->right();
+        const std::vector<int>& bottom_nodes = m_mesh->bottom();
+        const std::vector<int>& top_nodes = m_mesh->top();
+        const std::vector<int>& back_nodes = m_mesh->back();
+        const std::vector<int>& front_nodes = m_mesh->front();
+        // array of addresses to specific boundry nodes 
+        std::vector<int> nodes[6] = {
+            left_nodes, right_nodes,
+            bottom_nodes, top_nodes,
+            back_nodes, front_nodes
+            };
+        // indices of the coordinates for each function
+        // 0 for x, 1 for y, 2 for z
+        int ind[6][2] = {{1,2},{1,2},{0,2},{0,2},{0,1},{0,1}};
+        T d[6] = {dt/dx/dx, dt/dx/dx, dt/dy/dy, dt/dy/dy, dt/dz/dz, dt/dz/dz};
+        T d_i[6] = {dx, dx, dy, dy, dz, dz};
+        // the number of boundary to set up depend on the dimension
+        int n_bnd = 2 * m_dim;
+        const Coord& c = coordinates();
+        for(int bnd=0; bnd<n_bnd; bnd++){
+            if (m_bc_types[bnd] == 0){  // Dirichlet
+                for(int i=0; i<nodes[bnd].size(); i++){
+                    // the rhs value is equal to the value returned by the
+                    // boundary function
+                    rhs[nodes[bnd][i]] = (this->*m_functions[bnd]) (
+                        c[nodes[bnd][i]][ind[bnd][0]], 
+                        c[nodes[bnd][i]][ind[bnd][1]], 
+                        t);
+                }
+            } else if(m_bc_types[bnd] == 1){  // Neumann
+                // TODO: fix corners for 2D and 3D and fix edges for 3D
+                T sign = 1.0, g, g_n, alpha_m, alpha_p;
+                int k, side = 1;
+                for(int i=0; i<nodes[bnd].size(); i++){  // scaled by 1/2
+                    k = nodes[bnd][i];
+                    g = (this->*m_functions[bnd]) (
+                            c[k][ind[bnd][0]], 
+                            c[k][ind[bnd][1]], 
+                            t + dt);
+                    g_n = (this->*m_functions[bnd]) (
+                            c[k][ind[bnd][0]], 
+                            c[k][ind[bnd][1]], 
+                            t);
+                    if (bnd % 2){  // right, top, front
+                        sign = -1.0;
+                        side = -1;
+                        // alpha_m = 0.5 * (alpha[k] + alpha[k-1]);
+                        // get value on the right of the boundary
+                        // alpha_p = 0.5 * (alpha[k] + alpha[k]);
+                    } else{  // left, bottom, back
+                        sign = 1.0;
+                        side = 1;
+                        // get value on the left of the boundary
+                        // alpha_m = 0.5 * (alpha[k] + alpha[k]);
+                        // alpha_p = 0.5 * (alpha[k] + alpha[k+1]);
+                    }
+                    // TODO fix value of alpha
+                    rhs[k] = 0.5 * (
+                        u_n[k] + 
+                        theta*(sign*d[bnd]*alpha[k]*g*2.0*d_i[bnd] + dt*f[k]) +
+                        (1.0-theta)*(2*alpha[k]*d_i[bnd]*(u_n[k+side]-u_n[k])
+                            +sign*d[bnd]*alpha[k]*g_n*2.0*d_i[bnd] + dt*f_n[k])
+                        );
+                }
+            } else{
+                throw std::invalid_argument(
+                "Not a valid boundary condition type.");
+            }
+        }
     }
     /**
     * User defined function: right boundary.

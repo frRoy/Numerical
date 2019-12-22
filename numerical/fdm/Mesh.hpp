@@ -237,7 +237,6 @@ public:
     std::vector<int> corners(){
         // TODO define in 3D
         // 2D: 0, nx, ny * (nx+1), (ny+1) * (nx+1) -1
-        // boundaries in 1D
         return {0};
     }
     /**
@@ -301,7 +300,6 @@ public:
     */
     std::vector<int> edges(){
         // TODO define in 3D
-        // boundaries in 2D
         return {0};
     }
     /**

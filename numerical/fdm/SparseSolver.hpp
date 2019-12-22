@@ -20,8 +20,8 @@ namespace numerical {
 namespace fdm {
 
 /**
- * This class only computes the diffusion problem with Dirichlet boundary 
- * conditions and constant diffusion coefficient (for now).
+ * This class only computes the 1D diffusion problem with Dirichlet/Neumann 
+ * boundary conditions and heterogenous diffusion coefficient (for now).
  */
 template <typename T>
 class SparseSolver {
@@ -83,9 +83,19 @@ public:
   */
   void assemble_a(){
     std::vector<Trip> trp;
+    Vec lower_a, upper_a, lower_b, upper_b;
     Vec diagonal = Vec::Constant(m_n, 1.0);
-    Vec lower = Vec::Zero(m_n - 1);
+    Vec lower = Vec::Zero(m_n - 1); 
     Vec upper = Vec::Zero(m_n - 1);
+    if (m_dim > 1){  // 2D and 3D
+        // spdlog::info("2D: n - (nx+1) = {}", m_n - (m_n_x + 1));
+        lower_a = Vec::Zero(m_n - (m_n_x + 1));
+        upper_a = Vec::Zero(m_n - (m_n_x + 1));
+    }
+    if (m_dim > 2){  // 3D
+        lower_b = Vec::Zero(m_n - (m_n_x + 1)*(m_n_y + 1));
+        upper_b = Vec::Zero(m_n - (m_n_x + 1)*(m_n_y + 1));
+    }
     // The loops are vectorized for efficiency -- see bench/performances
     if (m_dim == 1){
         // spdlog::info("1D");
@@ -103,28 +113,39 @@ public:
         upper.segment(1, (m_n-1)-1) += -d * m_alpha.segment(2, m_n-2);
         upper.segment(1, (m_n-1)-1) += -d * m_alpha.segment(1, m_n-2);
         // boundary conditions
+        // TODO use: m_problem->coeffs_bc(Vec& dia, Vec& lower, Vec& upper, 
+        //                                Vec& lower_a, Vec& upper_a, 
+        //                                Vec& lower_b, Vec& upper_b, T t=0.0)
+        // instead.
+        std::cout << m_problem->bc_type(0) << std::endl;
         if(m_problem->bc_type(0) == 0){ // left Dirichlet
             diagonal[0] = 1.0;
             upper[0] = 0.0;
-          } else{  // left Neumann
-            diagonal[0] = d * 2.0 * m_alpha[0];
-            upper[0] = -d * 2.0 * m_alpha[0];
+          } else{  // left Neumann --> scaled by 1/2
+            // here we assume that the diffusion coefficient outside
+            // of the boundary is equal to alpha[0]
+            diagonal[0] = 0.5 + d*(0.5*m_alpha[0]+m_alpha[0]+0.5*m_alpha[1]);
+            upper[0] = -d*(m_alpha[0]+m_alpha[1]);
           }
         if(m_problem->bc_type(1) == 0){ // right Dirichlet
             diagonal[m_n-1] = 1.0;
             lower[(m_n - 1)-1] = 0.0;
-          } else {  // right Neumann
-            diagonal[m_n-1] = d * 2.0 * m_alpha[m_n-1];
-            lower[(m_n - 1)-1] = -d * 2.0 * m_alpha[m_n-1];
+          } else {  // right Neumann --> scaled by 1/2
+            // here we assume that the diffusion coefficient outside
+            // of the boundary is equal to alpha[n-1]
+            diagonal[m_n-1] = 0.5 + d*(0.5*m_alpha[m_n-2]+m_alpha[m_n-1]+
+                  0.5*m_alpha[m_n-1]);
+            lower[(m_n - 1)-1] = -d*(m_alpha[m_n-1]+m_alpha[m_n-2]);
           }
+
         // insert diagonals in A
         for(int i=0; i<m_n; i++){
             trp.push_back(Trip(i,i,diagonal[i]));    
         }
-        for(int i=1; i<m_n - 1; i++){
+        for(int i=1; i<m_n; i++){
             trp.push_back(Trip(i,i-1,lower[i-1]));    
         }
-        for(int i=1; i<m_n - 1; i++){
+        for(int i=0; i<m_n - 1; i++){
             trp.push_back(Trip(i,i+1,upper[i]));    
         }
         // create sparse matrix
@@ -179,7 +200,8 @@ public:
           m_b.segment(1, m_n-2) += m_dt * (1.0 -m_theta) * 
             m_f_n.segment(1, m_n-2);
           // Boundary conditions
-          m_problem->rhs_bc(m_b, t);
+          m_problem->rhs_bc(m_b, u_n, m_alpha, m_f_n, m_f, m_dx, m_dy, m_dz, 
+                            m_dt, m_theta, t);
       } else if (m_dim == 2){
         // spdlog::info("2D");
         // TODO
@@ -201,7 +223,7 @@ public:
       T t, l2norm=0.0;
       Vec t_list = m_problem->t();
       assemble_a();
-      // std::cout << m_A;
+      std::cout << m_A;
       Eigen::SimplicialLDLT<SpMat> solver;
       // Time loop
       T e=0.0;

@@ -11,12 +11,21 @@
 
 int main(int argc, char* argv[])
 {
-    std::string problem = "a";
+    std::string problem = "b";
+    double out = 1.0;
     try{
     	if(problem == "a"){
     		spdlog::info("{}: problem {}", "Running diffusion", problem);
-    	    bool out1 = bench::diffusion::fdm_diffusion_a();
+            // TODO return the L2-norm and assert smaller than 1e-6
+    	    out = bench::diffusion::fdm_diffusion_a();
         }
+        if(problem == "b"){
+            // TODO return the L2-norm and assert smaller than 1e-6
+            spdlog::info("{}: problem {}", "Running diffusion", problem);
+            out = bench::diffusion::fdm_diffusion_b();
+        }
+        spdlog::info("The problem {}, computed with a L2-norm error of {}",
+            problem, out);
     }
     catch (const std::invalid_argument& error){
         spdlog::error(error.what());

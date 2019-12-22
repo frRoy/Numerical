@@ -35,8 +35,12 @@ Vec test_rhs(){
 	Parameters* params = new Parameters();
     Problem p = Problem(params);
     Vec rhs = Vec::Constant(p.n(), 1.0);
+    Vec u_n = Vec::Constant(p.n(), 1.0);
+    Vec alpha = Vec::Constant(p.n(), 1.0);
+    Vec f_n = Vec::Constant(p.n(), 1.0);
+    Vec f = Vec::Constant(p.n(), 1.0);
     delete params;
-    p.rhs_bc(rhs, 0.0);
+    p.rhs_bc(rhs, u_n, alpha, f_n, f, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     return rhs;
 }
 
