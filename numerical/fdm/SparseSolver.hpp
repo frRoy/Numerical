@@ -29,7 +29,7 @@ typedef Eigen::SparseMatrix<T> SpMat;
 typedef Eigen::Triplet<T> Trip;
 typedef Eigen::Matrix<T, Eigen::Dynamic, 1> Vec;
 typedef std::vector<Eigen::Matrix<T, 3, 1>> Coord;
-private:
+protected:
   SpMat m_A;
   Problem<T>* m_problem;
   int m_n, m_n_x, m_n_y, m_n_z, m_n_t, m_dim;
@@ -81,7 +81,7 @@ public:
   * The diagonals of the matrix \f$\mathbf{A}\f$ is are filled by vectorization
   * of the loops for efficiency.
   */
-  void assemble_a(){
+  virtual void assemble_a(){
     std::vector<Trip> trp;
     Vec lower_a, upper_a, lower_b, upper_b;
     Vec diagonal = Vec::Constant(m_n, 1.0);
@@ -100,9 +100,10 @@ public:
     if (m_dim == 1){
         // spdlog::info("1D");
         T d = m_dt/m_dx/m_dx*m_theta/2.0;
-        spdlog::info("dx: {}, dt: {}, theta: {}, alpha: {}", 
+        spdlog::debug("dx: {}, dt: {}, theta: {}, alpha: {}", 
                       m_dx, m_dt, m_theta, m_alpha[0]);
-        spdlog::info("Fx: {}", d*m_alpha[0]*2.0);
+        // Fx must be smaller than 0.5 for explicit and Crank-Nicolson schemes
+        spdlog::debug("Fx: {}", m_dt/m_dx/m_dx*m_alpha[0]);
         diagonal[0] = 0.0;
         diagonal[m_n - 1] = 0.0;
         diagonal.segment(1, m_n-2) += d * m_alpha.segment(2, m_n-2);
@@ -117,7 +118,7 @@ public:
         //                                Vec& lower_a, Vec& upper_a, 
         //                                Vec& lower_b, Vec& upper_b, T t=0.0)
         // instead.
-        std::cout << m_problem->bc_type(0) << std::endl;
+        // std::cout << m_problem->bc_type(0) << std::endl;
         if(m_problem->bc_type(0) == 0){ // left Dirichlet
             diagonal[0] = 1.0;
             upper[0] = 0.0;
@@ -176,14 +177,14 @@ public:
   * \f]
   *
   */
-  void assemble_b(T t, Vec& u_n){
+  virtual void assemble_b(T t, Vec& u_n){
       const Coord& coords = m_problem->coordinates();
       // TODO define the diffusion coefficient and source term only if they
       // depend on time
       for(int i=0; i<m_n; i++) {
           m_alpha[i] = m_problem->alpha(coords[i], t);
           m_f_n[i] = m_problem->source(coords[i], t);
-          m_f[i] = m_problem->source(coords[i], t + m_n_t * m_dt);
+          m_f[i] = m_problem->source(coords[i], t + m_dt);
       }
       if (m_dim == 1){
           // spdlog::info("1D");
@@ -215,7 +216,7 @@ public:
   * TODO: Create a VTKFile class to store the solution in a vtu file at each 
   * time steps
   */
-  virtual void solve(){
+  virtual T solve(){
       // Set initial condition
       Vec u_n = m_problem->u_0();
       Vec u = Vec::Zero(m_problem->n());
@@ -223,39 +224,43 @@ public:
       T t, l2norm=0.0;
       Vec t_list = m_problem->t();
       assemble_a();
-      std::cout << m_A;
+      // std::cout << m_A << std::endl;
       Eigen::SimplicialLDLT<SpMat> solver;
       // Time loop
       T e=0.0;
       for(int n=0; n<n_t; n++){
         t = t_list[n]; 
         assemble_b(t, u_n);
+        // std::cout << m_b << std::endl;
         // Solve
         solver.compute(m_A);
         if(solver.info()!=Eigen::Success) {
             spdlog::error("decomposition failed");
             spdlog::error("{}", solver.info());
-            return;
+            return 999.0;
         }
         u = solver.solve(m_b);
         if(solver.info()!=Eigen::Success) {
             spdlog::error("solving failed");
             spdlog::error("{}", solver.info());
-            return;
+            return 999.0;
         }
         // spdlog::info("b[1]: {}, b[n-2]: {}", m_b[1], m_b[m_n-2]);
         // TODO Save result in file here.
         const Coord& coords = m_problem->coordinates();
-        //spdlog::info("exact solution: {}, computed solution: {}", 
-        //    m_problem->reference(coords[4], t+m_dt), u[4]);
-        
+        spdlog::debug("SOLUTION at time {:03.6f}:", t+m_dt);
         for(int i=0;i<m_n;i++){
-            e += pow(m_problem->reference(coords[i], t+m_dt)-u[i], 2.0); 
+            e += pow(m_problem->reference(coords[i], t+m_dt)-u[i], 2.0);
+            spdlog::debug(
+              "coord: ({}, {}, {}), exact: {:03.6f}, computed: {:03.6f}", 
+              coords[i][0], coords[i][1], coords[i][2],
+              m_problem->reference(coords[i], t+m_dt), u[i]);
         }
         u_n = u;
       }
       l2norm += pow(m_dx*m_dt*e, 0.5);
-      spdlog::info("L2-norm: {}", l2norm);
+      // spdlog::info("L2-norm: {}", l2norm);
+      return l2norm;
   }
 };
 

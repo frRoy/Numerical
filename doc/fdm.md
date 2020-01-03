@@ -279,6 +279,66 @@ Taking (0, 0) as an example, we have ...
     \end{align}
 \f]
 
+## Nonlinear Problems
+
+There three possible approaches:
+
+1. Discretize the problem in time and linearize the time-discrete (stationary) 
+  PDE problem at each time level into a sequence of linear PDE problems.
+2. Discretize the problem in time and space and solve the resulting nonlinear
+  algebraic equations at each time level.
+3. Operator splitting.
+
+### First approach (PDE level)
+Linearizing time-discrete PDEs directly prior to discretization 
+in space. In this case we can use either the Picard or Newton method for
+implicit shemes (backward Euler of Crank-Nicolson). For the forward Euler
+method, we can directly introduce the nonlinear term in the discretized
+equation. The disadvantage of the explicit method is the strict stability
+criterion.
+
+### Second approach (Algebraic level)
+Carry out the discretization in space of the time-discrete 
+nonlinear PDE problem and get a system of nonlinear algebraic equations.
+
+### Third approach
+
+### Picard Method
+
+The Picard method iterates on the spatialy discretized equation for a given
+time step until the difference between the last and new solution match at a
+given tolerence value.
+
+that is iterates until
+
+\f[
+  u^{n, k+1} = u^{, k} + \textrm{TOL}
+\f]
+
+### Newton Method
+
+**PDE level**:
+
+\f[
+  u^{n, k+1} = u^{n, k} + \delta u
+\f]
+
+**Algebraic level**:
+
+### Generalized method (PDE level)
+
+\f[
+  \frac{u^{n}-u^{n-1}}{\Delta t} = \nabla\cdot\left(\alpha(u^{n, k})
+    \nabla u\right) + f(u^{n ,k}) + \gamma\left(
+    \nabla\cdot\left(\alpha'(u^{n, k})\left(u^{n}-u^{n, k}\right)
+    \nabla u^{n,k}\right)+f'(u^{n, k})\left(u^n-u^{n,k}\right)\right)
+\f]
+
+where the primed quantities represent the derivative with respect to \f$u\f$.
+
+Note that if \f$\gamma = 0\f$, we have the Picard method, and if 
+\f$\gamma=1\f$, we have the Newton method.
+
 ## References        {#references}
 
 1. H. P. Langtangen and S. Linge. Finite Difference Computing with PDEs: 

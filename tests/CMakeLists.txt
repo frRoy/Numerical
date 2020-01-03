@@ -12,6 +12,7 @@ target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 set(TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/fdm/MeshTest.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/fdm/NLSparseSolverTest.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/fdm/ParametersTest.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/fdm/ProblemTest.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/fdm/SparseSolverTest.cpp

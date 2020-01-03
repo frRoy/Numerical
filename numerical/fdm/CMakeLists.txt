@@ -5,6 +5,7 @@
 set(HEADERS
   fdm.hpp
   Mesh.hpp
+  NLSparseSolver.hpp
   Parameters.hpp
   Problem.hpp
   SparseSolver.hpp
@@ -12,6 +13,7 @@ set(HEADERS
 
 set(SOURCES
   Mesh.cpp
+  NLSparseSolver.cpp
   Parameters.cpp
   Problem.cpp
   SparseSolver.cpp

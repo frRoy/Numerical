@@ -43,11 +43,10 @@ double fdm_diffusion_a(){
     FDMDiffusionA *prob = new FDMDiffusionA(p);
     numerical::fdm::SparseSolver<double> s = 
         numerical::fdm::SparseSolver<double>(prob);
-    s.solve();
+    double l2norm = s.solve();
     delete p;
     delete prob;
-    // TODO return the L2-norm
-	return 1.0;
+	return l2norm;
 }
 
 }  // namespace diffusion

@@ -32,7 +32,7 @@ typedef std::vector<Eigen::Matrix<T, 3, 1>> Coord;
 // function pointer to member functions
 typedef  T (Problem<T>::*fctptr)(T x1, T x2, T time);
 private:
-    int m_dim; // space dimenions of the problem 
+    int m_dim; // space dimensions of the problem 
     Vec m_t;
     std::vector<T> m_dx;
     T m_dt;
@@ -51,6 +51,10 @@ public:
       m_bc_types{0, 0, 0, 0, 0, 0} {
         // define other variables variables
         m_dim = m_params->lengths.size();
+        if(m_dim>1){
+            // TODO implement higher dimensions
+            spdlog::error("Only one-dimensional problems supported.");
+        }
   	    // define mesh
   	    m_mesh = new Mesh<T>(m_params->lengths, m_params->t0, m_params->tend, 
           m_params->n, m_params->nt);
@@ -70,9 +74,10 @@ public:
     * @param x The \f$x\f$-, \f$y\f$-, and \f$z\f$-coordinates of the mesh 
     *    node.
     * @param t The discrete time.
+    * @param u The state variable for nonlinear problems.
     * @return The diffusion coefficient value at a specified mesh location.
     */
-    virtual T alpha(const Eigen::Matrix<T, 3, 1>& x, T t){
+    virtual T alpha(const Eigen::Matrix<T, 3, 1>& x, T t, T u=0){
   	    return m_params->alpha;
     }
     /**
@@ -260,7 +265,113 @@ public:
     }
     /**
     *  Set the value of the RHS vector at the indices of the boundary
-    *  nodes.
+    *  nodes for Dirichlet and Neumann boundary conditions.
+    *
+    *  The user defined functions at the boundaries are time-dependent and
+    *  depend on the location of the boundary nodes on the plane defining 
+    *  the boundaries. We use function pointers to member functions,
+    *  numerical::fdm::Problem::left(), numerical::fdm::Problem::right(),
+    *  numerical::fdm::Problem::bottom(), numerical::fdm::Problem::top(),
+    *  numerical::fdm::Problem::back(), and numerical::fdm::Problem::front()
+    *  to define the value of the Dirichlet or Neumann boundary condition at
+    *  each boundary nodes. The boundary nodes are passed by address from the
+    *  Mesh instance, and stored in an array of addresses of l;ength 6, where 
+    *  the indices respectively represent the left (0), right (1), bottom (2),
+    *  top (3), back (4) and front (5) boundaries. In order to pass the right
+    *  coordinates to the user defined functions, we use a two-dimensional 
+    *  array of size (6, 2), where the first indice correspond to the boundary 
+    *  and the second to the indice of the spatial coordinates, i.e. 0 for 
+    *  \f$x\f$, 1 for \f$y\f$ and 2 for \f$z\f$.
+    *
+    *  For Dirichlet boundary conditions, we only have to set the value of the
+    *  RHS vector at the boundary nodes equal to the specified value obtained 
+    *  from the user defined function.
+    *
+    *  For Neumann boundary conditions, it is a little bit more complicated
+    *  since we have to approximate the normal derivative at the boundary 
+    *  nodes. In order to define the right normal unit vector (pointing 
+    *  outward of the domain) and "interior node", we define 
+    *  the left and right side of each boundaries, such that \f$\mathbf{n}=1\f$
+    *  , and side = -1 for the boundaries that have the right side outside of 
+    *  the domain, i.e. right, top, and front. The opposite happens for the
+    *  boundaries that have the left side outside the domain, i.e., left,
+    *  bottom, and back have \f$\mathbf{n}=-1\f$, and side = 1. We also use 
+    *  the same indices to define the space increment in the direction normal 
+    *  to the boundary. 
+    *
+    *  For a boundary node that is not an edge nor a corner, the RHS vector
+    *  at the position of the node is expressed as:
+    *
+    *  **Left-side boundaries:**
+    *
+    *  Using \f$\textrm{bnd}\f$ as the index of the boundary for the normal
+    *  direction, for example \f$dx[\textrm{bnd}=0]=\Delta x\f$ for the left
+    *  boundary, i.e. \f$\textrm{bnd}=0\f$, we have:  
+    *
+    *  \f[
+    *    \textrm{RHS}[i] = u_n[i] + \theta\left(2d\alpha_m[i]g[i]
+    *        dx[\textrm{bnd}]+
+    *        \Delta tf[i]\right) + \left(1-\theta\right)\left(
+    *    d\left(\alpha_p[i]\left(u_n[i+1]-u_n[i]\right)-
+    *           \alpha_m[i]\left(u_n[i]-u_n[i+1]\right)\right)+
+    *    2d\alpha_m[i]g_n[i]dx[\textrm{bnd}]+\Delta tf_n[i]\right) 
+    *  \f]
+    *
+    *  where
+    *
+    *  \f[
+    *    \begin{align}
+    *    \alpha_m[i] &= \frac{1}{2}\left(\alpha_\textrm{out} + 
+    *        \alpha[i]\right)\\
+    *    \alpha_p[i] &= \frac{1}{2}\left(\alpha[i] + \alpha[i+1]\right)
+    *    \end{align}
+    *  \f]
+    *
+    *  and where \f$\alpha_\textrm{out}\f$ is the value of the diffusion 
+    *  coefficient outside of the left side of the boundary (outside of the 
+    *  domain). By default we set \f$\alpha_\textrm{out}=\alpha[i]\f$
+    *
+    *  **Right-side boundaries:** 
+    *
+    *  Similarly for the right-side boundaries we have:
+    *
+    *  \f[
+    *    \textrm{RHS}[i] = u_n[i] + \theta\left(-2d\alpha_p[i]g[i]
+    *        dx[\textrm{bnd}]+
+    *        \Delta tf[i]\right) + \left(1-\theta\right)\left(
+    *    d\left(\alpha_p[i]\left(u_n[i-1]-u_n[i]\right)-
+    *           \alpha_m[i]\left(u_n[i]-u_n[i-1]\right)\right)-
+    *    2d\alpha_p[i]g_n[i]dx[\textrm{bnd}]+\Delta tf_n[i]\right) 
+    *  \f]
+    *
+    *  where
+    *
+    *  \f[
+    *    \begin{align}
+    *    \alpha_m[i] &= \frac{1}{2}\left(\alpha[i-1] + \alpha[i]\right)\\
+    *    \alpha_p[i] &= \frac{1}{2}\left(\alpha[i] + \alpha_\textrm{out}\right)
+    *    \end{align}
+    *  \f]
+    *
+    *  and where \f$\alpha_\textrm{out}\f$ is the value of the diffusion 
+    *  coefficient outside of the right side of the boundary (outside of the 
+    *  domain). By default we set \f$\alpha_\textrm{out}=\alpha[i]\f$
+    *
+    *  With the sign and side variables we can simply write:
+    *
+    *  \f[
+    *    \textrm{RHS}[i] = u_n[i] + \theta\left(\textrm{sign}2d\alpha[i]g[i]
+    *        dx[\textrm{bnd}]+
+    *        \Delta tf[i]\right) + \left(1-\theta\right)\left(
+    *    d\left(\alpha_p[i]\left(u_n[i+\textrm{side}]-u_n[i]\right)-
+    *           \alpha_m[i]\left(u_n[i]-u_n[i+\textrm{side}]\right)\right)+
+    *    \textrm{sign}2d\alpha[i]g_n[i]dx[\textrm{bnd}]+\Delta tf_n[i]\right) 
+    *  \f]
+    *
+    *  where we used the default value for the outside diffusion coefficient.
+    *
+    *  For 2D and 3D models we have to define the boundary corners. Boundary
+    *  edges have to be defined for 3D models. 
     *
     *  @param rhs The rhs vector.
     *  @param u_n The solution vector at previous time step.
@@ -290,10 +401,11 @@ public:
             bottom_nodes, top_nodes,
             back_nodes, front_nodes
             };
-        // indices of the coordinates for each function
+        // indices of the in-plane coordinates for each boundaries
         // 0 for x, 1 for y, 2 for z
         int ind[6][2] = {{1,2},{1,2},{0,2},{0,2},{0,1},{0,1}};
-        T d[6] = {dt/dx/dx, dt/dx/dx, dt/dy/dy, dt/dy/dy, dt/dz/dz, dt/dz/dz};
+        T d;
+        // space increment normal to the boundaries
         T d_i[6] = {dx, dx, dy, dy, dz, dz};
         // the number of boundary to set up depend on the dimension
         int n_bnd = 2 * m_dim;
@@ -306,43 +418,47 @@ public:
                     rhs[nodes[bnd][i]] = (this->*m_functions[bnd]) (
                         c[nodes[bnd][i]][ind[bnd][0]], 
                         c[nodes[bnd][i]][ind[bnd][1]], 
-                        t);
+                        t + dt);
                 }
             } else if(m_bc_types[bnd] == 1){  // Neumann
-                // TODO: fix corners for 2D and 3D and fix edges for 3D
                 T sign = 1.0, g, g_n, alpha_m, alpha_p;
                 int k, side = 1;
                 for(int i=0; i<nodes[bnd].size(); i++){  // scaled by 1/2
                     k = nodes[bnd][i];
                     g = (this->*m_functions[bnd]) (
                             c[k][ind[bnd][0]], 
-                            c[k][ind[bnd][1]], 
+                            c[k][ind[bnd][1]],
                             t + dt);
                     g_n = (this->*m_functions[bnd]) (
                             c[k][ind[bnd][0]], 
                             c[k][ind[bnd][1]], 
                             t);
-                    if (bnd % 2){  // right, top, front
-                        sign = -1.0;
+                    if (bnd % 2){  // right, top, front (right side outside)
+                        sign = 1.0;  // outward --> normal unit vector
                         side = -1;
-                        // alpha_m = 0.5 * (alpha[k] + alpha[k-1]);
-                        // get value on the right of the boundary
-                        // alpha_p = 0.5 * (alpha[k] + alpha[k]);
-                    } else{  // left, bottom, back
-                        sign = 1.0;
+                        alpha_m = 0.5 * (alpha[k] + alpha[k-1]);
+                        // TODO get alpha on the right of the boundary
+                        alpha_p = 0.5 * (alpha[k] + alpha[k]);
+                    } else{  // left, bottom, back (left side outside)
+                        sign = -1.0;  // outward --> normal unit vector
                         side = 1;
-                        // get value on the left of the boundary
-                        // alpha_m = 0.5 * (alpha[k] + alpha[k]);
-                        // alpha_p = 0.5 * (alpha[k] + alpha[k+1]);
+                        // TODO get alpha on the left of the boundary
+                        alpha_m = 0.5 * (alpha[k] + alpha[k]);
+                        alpha_p = 0.5 * (alpha[k] + alpha[k+1]);
                     }
-                    // TODO fix value of alpha
+                    d = dt/d_i[bnd]/d_i[bnd];
                     rhs[k] = 0.5 * (
                         u_n[k] + 
-                        theta*(sign*d[bnd]*alpha[k]*g*2.0*d_i[bnd] + dt*f[k]) +
-                        (1.0-theta)*(2*alpha[k]*d_i[bnd]*(u_n[k+side]-u_n[k])
-                            +sign*d[bnd]*alpha[k]*g_n*2.0*d_i[bnd] + dt*f_n[k])
+                        theta*(sign*2.0*d*alpha[k]*g*d_i[bnd] + dt*f[k]) +
+                        (1.0-theta)*(
+                            d*alpha_p*(u_n[k+side]-u_n[k])-
+                            d*alpha_m*(u_n[k]-u_n[k+side])+
+                            sign*2.0*d*alpha[k]*g_n*d_i[bnd] + dt*f_n[k])
                         );
                 }
+                // TODO: fix corners for 2D and 3D and fix edges for 3D
+                // if corner: we use two dirivatives in 2D and 3 derivatives 
+                // in 3D. If edges, use two derivatives.
             } else{
                 throw std::invalid_argument(
                 "Not a valid boundary condition type.");
@@ -380,9 +496,10 @@ public:
     * @param x The \f$x\f$-, \f$y\f$-, and \f$z\f$-coordinates of the mesh 
     *    node.
     * @param t The discrete time.
+    * @param u The state variable for nonlinear problems.
     * @return The source term at a specified mesh location.
     */
-    virtual T source(const Eigen::Matrix<T, 3, 1>& x, T t){
+    virtual T source(const Eigen::Matrix<T, 3, 1>& x, T t, T u=0){
         return 0.0;
     }
     /**
