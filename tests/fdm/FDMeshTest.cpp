@@ -1,43 +1,55 @@
 /**
- *  @file    MeshTest.cpp
- *  @brief   Test the @c Mesh class.
+ *  @file    FDMeshTest.cpp
+ *  @brief   Test the finite difference mesh.
  *  @author  Francois Roy
  *  @date    12/01/2019
  */
 #include <catch2/catch.hpp>
-#include "numerical/fdm/Mesh.hpp"
+#include "numerical/fdm/FDMesh.hpp"
 
 
 namespace
 {
-
 typedef std::vector<std::vector<double>> Vect;
-typedef numerical::fdm::Mesh<double> Mesh;
-/*!
+typedef numerical::fdm::FDMesh<double> Mesh;
+/**
+* Get the space increment in 1D.
+*
+* @param lengths The minimum and maximum global x-coordinates.
+* @return The space increment alongthe x-direction.
 */
 double test_lengths_1d( std::vector<std::vector<double>> lengths) {
     Mesh m = Mesh(lengths, 0.1, 1.1, {20}, 22);
     // m.coordinates();
     return m.dx()[0];
 }
-/*!
+/**
+* Get the space increment in 2D.
+*
+* @param lengths The minimum and maximum global x- and y-coordinates.
+* @return The space increment alongthe y-direction.
 */
 double test_lengths_2d( std::vector<std::vector<double>> lengths) {
     Mesh m = Mesh(lengths, 0.1, 1.1, {2, 3}, 22);
     // m.coordinates();
     return m.dx()[1];
 }
-/*!
+/**
+* Get the space increment in 3D.
+*
+* @param lengths The minimum and maximum global x- and y- and z-coordinates.
+* @return The space increment alongthe z-direction.
 */
 double test_lengths_3d( std::vector<std::vector<double>> lengths) {
     Mesh m = Mesh(lengths, 0.1, 1.1, {2, 3, 4}, 22);
     // m.coordinates();
     return m.dx()[2];
 }
-
-/*!
-*  If dir = 0, left otherwise right.
-*  @return the left or right boundary node index.
+/**
+* Get the chosen boundary in 1D.
+*
+* @param dir If dir = 0, left otherwise right.
+* @return the left or right boundary node index.
 */
 std::vector<int> test_bnd_1d(int dir=0) {
     Mesh m = Mesh({{0.0, 1.0}}, 0.1, 1.1, {10}, 22);
@@ -47,10 +59,11 @@ std::vector<int> test_bnd_1d(int dir=0) {
     }
     return out;
 }
-
-/*!
-*  If dir = 0, left, dir = 1, right, dir = 2, bottom otherwise top.
-*  @return the left, right, bottom or top boundary node index.
+/**
+* Get the chosen boundary in in 2D.
+*
+* @param dir If dir = 0, left, dir = 1, right, dir = 2, bottom otherwise top.
+* @return the left, right, bottom or top boundary node index.
 */
 std::vector<int> test_bnd_2d(int dir=0) {
     Mesh m = Mesh({{0.0, 1.0}, {0.0, 1.0}}, 0.1, 1.1, {2, 3}, 22);
@@ -69,11 +82,12 @@ std::vector<int> test_bnd_2d(int dir=0) {
     } 
     return out;
 }
-
-/*!
-*  If dir = 0, left, dir = 1, right, dir = 2, bottom, dir = 3, top, dir = 4, 
-*  front otherwise back.
-*  @return the left, right, bottom, top, front, or back boundary node index.
+/**
+* Get the chosen boundary in in 3D.
+*
+* @param dir If dir = 0, left, dir = 1, right, dir = 2, bottom, dir = 3, top, 
+*  dir = 4, front otherwise back.
+* @return the left, right, bottom, top, front, or back boundary node index.
 */
 std::vector<int> test_bnd_3d(int dir=0) {
     Mesh m = Mesh({{0.0, 1.0}, {0.0, 1.0}, {0.0, 1.0}}, 0.1, 1.1, 
@@ -99,8 +113,11 @@ std::vector<int> test_bnd_3d(int dir=0) {
     }
     return out;
 }
-/*!
+/**
+* Get the boundary indices.
 *
+* @param dim The spatial dimension.
+* @return The boundary indices.
 */
 std::vector<int> test_boundaries(int dim=1){
     std::vector<int> out;
@@ -120,7 +137,10 @@ std::vector<int> test_boundaries(int dim=1){
     return out; 
 }
 /**
+* Get the spatial coordinates.
 *
+* @param dim The spatial dimension.
+* @return The spatial coordinates.
 */
 std::vector<Eigen::Matrix<double, 3, 1>> test_coordinates(int dim){
     std::vector<Eigen::Matrix<double, 3, 1>> out;
@@ -140,10 +160,9 @@ std::vector<Eigen::Matrix<double, 3, 1>> test_coordinates(int dim){
     return out;
 }
 
-
 }  // namespace
 
-TEST_CASE( "Mesh tests are computed", "[mesh]" )
+TEST_CASE( "FDM: Mesh lengths tests.", "[FDMesh, lengths]" )
 {
   REQUIRE( test_lengths_1d({{0.1, 0.2}}) == Approx(0.1/20.0) );
   REQUIRE( test_lengths_2d({{0.1, 0.2}, {0.3, 0.4}}) == Approx(0.1/3.0) );
@@ -155,7 +174,7 @@ TEST_CASE( "Mesh tests are computed", "[mesh]" )
     Catch::Contains( "item" ) && Catch::Contains( "not a 2-list" ) );
 }
 
-TEST_CASE("Mesh: Test boundaries", "[boundaries]")
+TEST_CASE("FDM: Mesh boundary tests.", "[FDMesh, boundaries]")
 {
   // TODO the order doesn't matter, sorting the vector or transforming to sets
   // would give a correct comparison.
@@ -208,7 +227,7 @@ TEST_CASE("Mesh: Test boundaries", "[boundaries]")
   CHECK(test_boundaries(2) == bnd_2);
   CHECK(test_boundaries(3) == bnd_3);
 }
-TEST_CASE("Mesh: Test coordinates", "[coordinates]")
+TEST_CASE("FDM: Mesh coordinates tests.", "[FDMesh, coordinates]")
 {  
     std::vector<Eigen::Matrix<double, 3, 1>> coords;
     std::vector<double> c1 = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 

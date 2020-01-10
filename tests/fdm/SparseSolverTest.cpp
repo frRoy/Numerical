@@ -15,15 +15,18 @@ typedef Eigen::SparseMatrix<double> SpMat;
 typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vec;
 typedef Eigen::Triplet<double> T;
 
-T trip = T(1,1,3.0);
-
+/**
+* Run the solver for a 1D problem.
+* 
+* @return True.
+*/
 bool test_solver(){
     numerical::fdm::Parameters<double>* params = 
         new numerical::fdm::Parameters<double>();
     params->lengths = {{0.0, 1.0}};
     params->n = {10};
-    numerical::fdm::Problem<double>* p = 
-        new numerical::fdm::Problem<double>(params);
+    numerical::fdm::FDProblem<double>* p = 
+        new numerical::fdm::FDProblem<double>(params);
     numerical::fdm::SparseSolver<double> s = 
         numerical::fdm::SparseSolver<double>(p);
     s.solve();
@@ -34,8 +37,7 @@ bool test_solver(){
 
 }  // end namespace
 
-TEST_CASE( "SparseSolver are computed", "[sparse solver]" )
+TEST_CASE( "SPARSESOLVER: 1D tests.", "[SparseSolver]" )
 {
-  REQUIRE( trip.value() == Approx(3.0) );
   CHECK(test_solver());
 }

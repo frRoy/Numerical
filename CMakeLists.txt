@@ -110,6 +110,8 @@ set(INPUT_DOC
   ${PROJECT_SOURCE_DIR}/doc
   ${PROJECT_SOURCE_DIR}/numerical
   ${PROJECT_SOURCE_DIR}/numerical/fdm
+  ${PROJECT_SOURCE_DIR}/numerical/fem
+  ${PROJECT_SOURCE_DIR}/numerical/fvm
   ${PROJECT_SOURCE_DIR}/utils
    ${PROJECT_SOURCE_DIR}/bench/diffusion
   )

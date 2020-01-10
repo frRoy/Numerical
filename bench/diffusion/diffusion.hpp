@@ -25,7 +25,7 @@ typedef Eigen::ArrayXd Arr;
 *
 * @return The L2-norm of the error between the computed and exact solution.
 * @see numerical::fdm::Parameters
-* @see numerical::fdm::Mesh
+* @see numerical::fdm::FDMesh
 * @see numerical::fdm::SparseSolver
 */
 double fdm_diffusion_a();
@@ -36,7 +36,7 @@ double fdm_diffusion_a();
 *
 * @return The L2-norm of the error between the computed and exact solution.
 * @see numerical::fdm::Parameters
-* @see numerical::fdm::Mesh
+* @see numerical::fdm::FDMesh
 * @see numerical::fdm::SparseSolver
 */
 double fdm_diffusion_b();
@@ -47,7 +47,7 @@ double fdm_diffusion_b();
 *
 * @return The L2-norm of the error between the computed and exact solution.
 * @see numerical::fdm::Parameters
-* @see numerical::fdm::Mesh
+* @see numerical::fdm::FDMesh
 * @see numerical::fdm::SparseSolver
 */
 double fdm_diffusion_c();
@@ -58,7 +58,7 @@ double fdm_diffusion_c();
 *
 * @return The L2-norm of the error between the computed and exact solution.
 * @see numerical::fdm::Parameters
-* @see numerical::fdm::Mesh
+* @see numerical::fdm::FDMesh
 * @see numerical::fdm::SparseSolver
 */
 double fdm_diffusion_d();
@@ -69,7 +69,7 @@ double fdm_diffusion_d();
 *
 * @return The L2-norm of the error between the computed and exact solution.
 * @see numerical::fdm::Parameters
-* @see numerical::fdm::Mesh
+* @see numerical::fdm::FDMesh
 * @see numerical::fdm::SparseSolver
 */
 double fdm_diffusion_e();
@@ -78,12 +78,12 @@ double fdm_diffusion_e();
 * This class provides tools to compute the finite difference problem 
 * defined in @ref FDMDiffusionA::reference().
 *
-* The class is derived form the @ref numerical::fdm::Problem class and 
-* overrides the member function @ref numerical::fdm::Problem::left(),
-* @ref numerical::fdm::Problem::right(), 
-* @ref numerical::fdm::Problem::initial_value(),
-* @ref numerical::fdm::Problem::source(), and 
-* @ref numerical::fdm::Problem::reference().
+* The class is derived form the @ref numerical::fdm::FDProblem class and 
+* overrides the member function @ref numerical::fdm::FDProblem::left(),
+* @ref numerical::fdm::FDProblem::right(), 
+* @ref numerical::fdm::FDProblem::initial_value(),
+* @ref numerical::fdm::FDProblem::source(), and 
+* @ref numerical::fdm::FDProblem::reference().
 */
 class FDMDiffusionA : public numerical::fdm::Problem<double>{
 public:
@@ -141,12 +141,12 @@ public:
 * This class provides tools to compute the finite difference problem 
 * defined in @ref FDMDiffusionB::reference().
 *
-* The class is derived form the @ref numerical::fdm::Problem class and 
-* overrides the member function @ref numerical::fdm::Problem::left(),
-* @ref numerical::fdm::Problem::right(), 
-* @ref numerical::fdm::Problem::initial_value(),
-* @ref numerical::fdm::Problem::source(), and 
-* @ref numerical::fdm::Problem::reference().
+* The class is derived form the @ref numerical::fdm::FDProblem class and 
+* overrides the member function @ref numerical::fdm::FDProblem::left(),
+* @ref numerical::fdm::FDProblem::right(), 
+* @ref numerical::fdm::FDProblem::initial_value(),
+* @ref numerical::fdm::FDProblem::source(), and 
+* @ref numerical::fdm::FDProblem::reference().
 */
 class FDMDiffusionB : public numerical::fdm::Problem<double>{
 public:
@@ -212,12 +212,12 @@ public:
 * This class provides tools to compute the finite difference problem 
 * defined in @ref FDMDiffusionC::reference().
 *
-* The class is derived form the @ref numerical::fdm::Problem class and 
-* overrides the member function @ref numerical::fdm::Problem::left(),
-* @ref numerical::fdm::Problem::right(), 
-* @ref numerical::fdm::Problem::initial_value(),
-* @ref numerical::fdm::Problem::source(), and 
-* @ref numerical::fdm::Problem::reference().
+* The class is derived form the @ref numerical::fdm::FDProblem class and 
+* overrides the member function @ref numerical::fdm::FDProblem::left(),
+* @ref numerical::fdm::FDProblem::right(), 
+* @ref numerical::fdm::FDProblem::initial_value(),
+* @ref numerical::fdm::FDProblem::source(), and 
+* @ref numerical::fdm::FDProblem::reference().
 */
 class FDMDiffusionC : public numerical::fdm::Problem<double>{
 public:
@@ -284,12 +284,12 @@ public:
 * This class provides tools to compute the finite difference problem 
 * defined in @ref FDMDiffusionD::reference().
 *
-* The class is derived form the @ref numerical::fdm::Problem class and 
-* overrides the member function @ref numerical::fdm::Problem::left(),
-* @ref numerical::fdm::Problem::right(), 
-* @ref numerical::fdm::Problem::initial_value(),
-* @ref numerical::fdm::Problem::source(), and 
-* @ref numerical::fdm::Problem::reference().
+* The class is derived form the @ref numerical::fdm::FDProblem class and 
+* overrides the member function @ref numerical::fdm::FDProblem::left(),
+* @ref numerical::fdm::FDProblem::right(), 
+* @ref numerical::fdm::FDProblem::initial_value(),
+* @ref numerical::fdm::FDProblem::source(), and 
+* @ref numerical::fdm::FDProblem::reference().
 */
 class FDMDiffusionD : public numerical::fdm::Problem<double>{
 public:
@@ -349,12 +349,12 @@ public:
 * This class provides tools to compute the finite difference problem 
 * defined in @ref FDMDiffusionE::reference().
 *
-* The class is derived form the @ref numerical::fdm::Problem class and 
-* overrides the member function @ref numerical::fdm::Problem::left(),
-* @ref numerical::fdm::Problem::right(), 
-* @ref numerical::fdm::Problem::initial_value(),
-* @ref numerical::fdm::Problem::source(), and 
-* @ref numerical::fdm::Problem::reference().
+* The class is derived form the @ref numerical::fdm::FDProblem class and 
+* overrides the member function @ref numerical::fdm::FDProblem::left(),
+* @ref numerical::fdm::FDProblem::right(), 
+* @ref numerical::fdm::FDProblem::initial_value(),
+* @ref numerical::fdm::FDProblem::source(), and 
+* @ref numerical::fdm::FDProblem::reference().
 */
 class FDMDiffusionE : public numerical::fdm::Problem<double>{
 public:

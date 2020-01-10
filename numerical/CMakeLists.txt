@@ -44,5 +44,3 @@ foreach(DIR ${NUMERICAL_DIRS})
          ${CMAKE_CURRENT_SOURCE_DIR}/${DIR}/${SOURCE_FILE})
   endforeach()
 endforeach()
-
-

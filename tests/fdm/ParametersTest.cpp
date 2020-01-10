@@ -14,15 +14,9 @@ namespace
 typedef numerical::fdm::Parameters<double> Params;  
 
 /**
+* Set length in 1D.
 *
-*/
-double test_params_default() {
-    Params params = Params(); 
-    return params.theta;
-}
-
-/**
-*
+* @return The spatial dimension through size.
 */
 int test_set_lengths_1d() {
     Params params = Params();
@@ -32,8 +26,7 @@ int test_set_lengths_1d() {
 
 }  // end namespace
 
-TEST_CASE( "Parameters are computed", "[parameters]" )
+TEST_CASE( "PARAMETERS: parameters tests.", "[Parameters]" )
 {
-  REQUIRE( test_params_default() == Approx(0.5) );
-  REQUIRE( test_set_lengths_1d() == 1 );
+  CHECK( test_set_lengths_1d() == 1 );
 }

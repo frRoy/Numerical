@@ -8,6 +8,7 @@
 #include <Eigen/Core>
 #include "utils/ExecutionTimer.hpp"
 
+
 namespace
 {
 
@@ -22,7 +23,9 @@ void loop(unsigned int n) {
     }
 }
 
-// dummy test
+/**
+* Dummy test
+*/
 bool exec_time_ns(){ 
     utils::ExecutionTimer<std::chrono::nanoseconds> timer;
     unsigned int n = 100;
@@ -31,7 +34,9 @@ bool exec_time_ns(){
     return true;
 }
 
-// dummy test
+/**
+* Dummy test
+*/
 bool exec_time_ms(){ 
     utils::ExecutionTimer<std::chrono::milliseconds> timer;
     unsigned int n = 100;
@@ -42,7 +47,7 @@ bool exec_time_ms(){
 
 }  // namespace
 
-TEST_CASE( "Execution times are computed", "[ExecutionTimer]" )
+TEST_CASE( "EXECUTION_TIMER: Execution time tests.", "[ExecutionTimer]" )
 {
   REQUIRE( exec_time_ms() == true );
   REQUIRE( exec_time_ns() == true );

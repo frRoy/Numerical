@@ -1,11 +1,11 @@
 /**
- *  @file    Problem.hpp
- *  @brief   Define a finite difference problem.
+ *  @file    FDProblem.hpp
+ *  @brief   The finite difference problem.
  *  @author  Francois Roy
  *  @date    12/01/2019
  */
-#ifndef PROBLEM_H
-#define PROBLEM_H
+#ifndef FDPROBLEM_H
+#define FDPROBLEM_H
 
 // #include <iostream>
 #include <stdexcept>
@@ -14,7 +14,7 @@
 #include <Eigen/SparseCore>
 #include "spdlog/spdlog.h"
 #include "Parameters.hpp"
-#include "Mesh.hpp"
+#include "FDMesh.hpp"
 
 namespace numerical {
 
@@ -26,11 +26,11 @@ namespace fdm {
  * boundary conditions and heterogenous diffusion coefficient (for now).
  */
 template <typename T>
-class Problem {
+class FDProblem {
 typedef Eigen::Matrix<T, Eigen::Dynamic, 1> Vec;
 typedef std::vector<Eigen::Matrix<T, 3, 1>> Coord;
 // function pointer to member functions
-typedef  T (Problem<T>::*fctptr)(T x1, T x2, T time);
+typedef  T (FDProblem<T>::*fctptr)(T x1, T x2, T time);
 private:
     int m_dim; // space dimensions of the problem 
     Vec m_t;
@@ -38,15 +38,15 @@ private:
     T m_dt;
 protected:
     Parameters<T>* m_params;  // default parameters
-    Mesh<T>* m_mesh;  // mesh
+    FDMesh<T>* m_mesh;  // mesh
     int m_bc_types[6];  // boundary types (default = Dirichlet)
     Coord m_coordinates;
     // array of function pointers to member functions
-    fctptr m_functions[6] = {&Problem<T>::left, &Problem<T>::right,
-                             &Problem<T>::bottom, &Problem<T>::top,
-                             &Problem<T>::back, &Problem<T>::front};
+    fctptr m_functions[6] = {&FDProblem<T>::left, &FDProblem<T>::right,
+                             &FDProblem<T>::bottom, &FDProblem<T>::top,
+                             &FDProblem<T>::back, &FDProblem<T>::front};
 public:
-    Problem(Parameters<T>* params): 
+    FDProblem(Parameters<T>* params): 
       m_params(params),
       m_bc_types{0, 0, 0, 0, 0, 0} {
         // define other variables variables
@@ -56,14 +56,14 @@ public:
             spdlog::error("Only one-dimensional problems supported.");
         }
   	    // define mesh
-  	    m_mesh = new Mesh<T>(m_params->lengths, m_params->t0, m_params->tend, 
+  	    m_mesh = new FDMesh<T>(m_params->lengths, m_params->t0, m_params->tend, 
           m_params->n, m_params->nt);
         m_coordinates = m_mesh->coordinates();  // constant
         m_t = m_mesh->t();
         m_dx = m_mesh->dx();
         m_dt = m_mesh->dt();
     }
-    virtual ~Problem(){
+    virtual ~FDProblem(){
         delete m_mesh;
     }
 

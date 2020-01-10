@@ -1,11 +1,11 @@
 /**
- *  @file    Mesh.hpp
+ *  @file    FDMesh.hpp
  *  @brief   The finite difference mesh for the hypercube.
  *  @author  Francois Roy
  *  @date    12/04/2019
  */
-#ifndef MESH_H
-#define MESH_H
+#ifndef FDMESH_H
+#define FDMESH_H
 
 #include <stdexcept>
 #include <vector>
@@ -34,7 +34,7 @@ namespace fdm {
 * @param n List of number of cells in the spatial directions.
 */
 template <typename T>
-class Mesh {
+class FDMesh {
 typedef Eigen::Matrix<T, Eigen::Dynamic, 1> Vec;
 private:
 	const std::vector<std::vector<T>> m_lengths;
@@ -47,7 +47,7 @@ private:
 	Vec m_t;
 	std::size_t m_dim; 
 public:
-	Mesh(const std::vector<std::vector<T>>& lengths, T t0, T tend, 
+	FDMesh(const std::vector<std::vector<T>>& lengths, T t0, T tend, 
 		const std::vector<int>& nx, int nt) 
 	  : m_lengths(lengths),
 	  m_t0(t0),

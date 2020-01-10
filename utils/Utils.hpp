@@ -38,7 +38,6 @@ bool all_close(
     return ((a.derived() - b.derived()).array().abs()
             <= (atol + rtol * b.derived().array().abs())).all();
 }
-
 /**
 *  Creates a vector of evenly spaced numbers.
 *

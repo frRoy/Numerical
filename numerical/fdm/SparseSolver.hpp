@@ -12,7 +12,7 @@
 #include <Eigen/SparseCore>
 #include<Eigen/SparseCholesky>
 #include "spdlog/spdlog.h"
-#include "Problem.hpp"
+#include "FDProblem.hpp"
 #include <iostream>
 
 namespace numerical {
@@ -31,12 +31,12 @@ typedef Eigen::Matrix<T, Eigen::Dynamic, 1> Vec;
 typedef std::vector<Eigen::Matrix<T, 3, 1>> Coord;
 protected:
   SpMat m_A;
-  Problem<T>* m_problem;
+  FDProblem<T>* m_problem;
   int m_n, m_n_x, m_n_y, m_n_z, m_n_t, m_dim;
   T m_dt, m_dx, m_dy, m_dz, m_theta;
   Vec m_alpha, m_x, m_y, m_z, m_b, m_u, m_f, m_f_n;
 public:
-  SparseSolver(Problem<T>* problem)
+  SparseSolver(FDProblem<T>* problem)
     : m_problem(problem)
     {  
         m_n = m_problem->n();

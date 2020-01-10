@@ -8,17 +8,22 @@
 #include <Eigen/Core>
 #include "utils/Utils.hpp"
 
+
 namespace
 {
 
-// true test
+/**
+* true test
+*/
 bool all_close_true(){
     Eigen::VectorXd u = Eigen::VectorXd::Constant(11, 1.2);
     Eigen::VectorXd d = Eigen::VectorXd::Constant(11, 1.2);
     return utils::all_close(u, d);
 }
 
-// false test
+/**
+* false test
+*/
 bool all_close_false(){
     Eigen::VectorXd u = Eigen::VectorXd::Constant(11, 1.2);
     Eigen::VectorXd d = Eigen::VectorXd::Constant(11, 1.3);
@@ -27,12 +32,12 @@ bool all_close_false(){
 
 }  // namespace
 
-TEST_CASE( "all_close are computed", "[all_close]" )
+TEST_CASE( "UTILS: all_close tests.", "[Utils, all_close]" )
 {
     CHECK( all_close_true() );
     CHECK_FALSE( all_close_false() );
 }
-TEST_CASE("Test linear_spaced", "[utils]")
+TEST_CASE("UTILS: linear_spaced tests.", "[Utils]")
 {
 	std::vector<double> u = {0.0, 1.1, 2.2, 3.3};
 	auto v = utils::linear_spaced<double>(0, 3.3, 4);

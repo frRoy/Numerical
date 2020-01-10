@@ -1,21 +1,19 @@
-# Numerical "fdm" Target
-# Executable used to solve a pde problem using finite difference.
+# Numerical fdm
+# Library used to solve a pde problem using the finite difference method.
 # Copyright 2020, Francois Roy
 #=============================================================================
 set(HEADERS
   fdm.hpp
-  Mesh.hpp
-  NLSparseSolver.hpp
+  FDMesh.hpp
   Parameters.hpp
-  Problem.hpp
+  FDProblem.hpp
   SparseSolver.hpp
   PARENT_SCOPE)
 
 set(SOURCES
-  Mesh.cpp
-  NLSparseSolver.cpp
+  FDMesh.cpp
   Parameters.cpp
-  Problem.cpp
+  FDProblem.cpp
   SparseSolver.cpp
   PARENT_SCOPE)
 

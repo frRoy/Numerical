@@ -5,7 +5,7 @@
  *  @date    12/01/2019
  */
 #include <catch2/catch.hpp>
-#include "numerical/fdm/Problem.hpp"
+#include "numerical/fdm/FDProblem.hpp"
 
 
 namespace
@@ -13,28 +13,15 @@ namespace
 
 typedef Eigen::SparseMatrix<double> SpMat;
 typedef Eigen::Triplet<double> T;
-typedef numerical::fdm::Problem<double> Problem;
+typedef numerical::fdm::FDProblem<double> Problem;
 typedef numerical::fdm::Parameters<double> Parameters;
 typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vec;
 
-template<typename T>
-T sum(T a, T b, T c, T d){
-    return a + b + c +d;
-}
-
 /**
+* Get the RHS vector for the homogeneous Nuumann boundary conditions in 1D.
+*
+* @return The RHS vector.
 */
-double test_default() {
-	Parameters* params = new Parameters();
-    params->lengths = {{0.0, 1.0}};
-    params->n = {10};
-    params->nt = {100};
-    params->tend = 1.0;
-    Problem p = Problem(params);
-    delete params;
-    return p.dim();
-}
-
 Vec test_rhs_homogeneous_neumann(){
 	Parameters* params = new Parameters();
     params->lengths = {{0.0, 1.0}};
@@ -59,8 +46,8 @@ Vec test_rhs_homogeneous_neumann(){
 
 }  // end namespace
 
-TEST_CASE( "Finite difference problem tests", "[fdm problem]" )
+TEST_CASE( "FDM:  problem tests", "[FDProblem, RHS, Neumann]" )
 {
-  CHECK(test_default() == 1);
-  Vec out = test_rhs_homogeneous_neumann(); 
+  Vec out = test_rhs_homogeneous_neumann();
+  CHECK(1 == 1); 
 }
