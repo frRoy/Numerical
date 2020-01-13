@@ -37,11 +37,3 @@ TEST_CASE( "UTILS: all_close tests.", "[Utils, all_close]" )
     CHECK( all_close_true() );
     CHECK_FALSE( all_close_false() );
 }
-TEST_CASE("UTILS: linear_spaced tests.", "[Utils]")
-{
-	std::vector<double> u = {0.0, 1.1, 2.2, 3.3};
-	auto v = utils::linear_spaced<double>(0, 3.3, 4);
-	for(int i; i<u.size(); i++){
-        CHECK(v[i] == Approx(u[i]) );
-	}
-}

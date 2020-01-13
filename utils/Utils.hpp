@@ -38,26 +38,6 @@ bool all_close(
     return ((a.derived() - b.derived()).array().abs()
             <= (atol + rtol * b.derived().array().abs())).all();
 }
-/**
-*  Creates a vector of evenly spaced numbers.
-*
-* @param a The first element.
-* @param b The last element.
-* @param n  The number of elements.
-* @return A linear spaced vector.
-*/
-template<typename T>
-std::vector<T> linear_spaced(T a, T b, std::size_t n)
-{
-    T h = (b - a) / static_cast<T>(n-1);
-    std::vector<T> xs(n);
-    typename std::vector<T>::iterator x;
-    T val;
-    for (x = xs.begin(), val = a; x != xs.end(); ++x, val += h) {
-        *x = val;
-    }
-    return xs;
-}
 
 } // namespace utils
 

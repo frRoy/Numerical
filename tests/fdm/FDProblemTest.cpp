@@ -37,7 +37,7 @@ Vec test_rhs_homogeneous_neumann(){
     Vec alpha = Vec::Constant(p.n(), 1.0);
     Vec f_n = Vec::Constant(p.n(), 0.0);
     Vec f = Vec::Constant(p.n(), 0.0);
-    double dx = p.dx()[0], dy = p.dx()[1], dz = p.dx()[2], dt = p.dt();
+    double dx = p.dx()[0], dy = 1.0, dz = 1.0, dt = p.dt();
     double theta = p.theta(), t=dt;
     delete params;
     p.rhs_bc(rhs, u_n, alpha, f_n, f, dx, dy, dz, dt, theta, t);
@@ -48,6 +48,6 @@ Vec test_rhs_homogeneous_neumann(){
 
 TEST_CASE( "FDM:  problem tests", "[FDProblem, RHS, Neumann]" )
 {
-  Vec out = test_rhs_homogeneous_neumann();
+  test_rhs_homogeneous_neumann();
   CHECK(1 == 1); 
 }

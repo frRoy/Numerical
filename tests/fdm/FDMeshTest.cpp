@@ -234,7 +234,7 @@ TEST_CASE("FDM: Mesh coordinates tests.", "[FDMesh, coordinates]")
                               0.6, 0.7, 0.8, 0.9, 1.0};
     coords = test_coordinates(1);
     // spdlog::info("{}", coords[0][1]);
-    for (int i; i<coords.size(); i++){
+    for (int i=0; i<coords.size(); i++){
         CHECK(coords[i][0] == Approx(c1[i]));
     }
 }

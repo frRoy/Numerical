@@ -139,7 +139,7 @@ if(VALGRIND)
     add_custom_target(valgrind
         COMMAND "${VALGRIND}" --tool=memcheck --leak-check=yes 
             --show-reachable=yes --num-callers=20 
-            --track-fds=yes $<TARGET_FILE:tests>)
+            --track-fds=yes --track-origins=yes -s $<TARGET_FILE:tests>)
 endif()
 
 # target performances

@@ -238,13 +238,21 @@ public:
     * @return The number of division along the \f$y\f$-axis.
     */
     int n_y(){
-        return m_params->n[1]; 
+        int n = 1;
+        if (m_dim != 1){
+            n = m_params->n[1];
+        }
+        return n; 
     }
     /**
     * @return The number of division along the \f$z\f$-axis.
     */
     int n_z(){
-        return m_params->n[2]; 
+        int n = 1;
+        if (m_dim == 3){
+            n = m_params->n[2];
+        }
+        return n; 
     }
     /**
     * @return The total number of discrete time steps.

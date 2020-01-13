@@ -264,25 +264,6 @@ public:
         return {n_x, n_y, n_z};
     }
     /**
-    * @return The indices of the domain (all). 
-    */
-    std::vector<int> domain(){
-        std::vector<int> nx = division_per_axis();
-        std::vector<int> all;
-        if (m_dim == 1){
-            all == utils::linear_spaced<int>(0, nx[0], nx[0] + 1);
-        }
-        else if (m_dim ==2){
-            all == utils::linear_spaced<int>(0, (nx[0] + 1) * (nx[1] + 1) - 1, 
-                (nx[0] + 1) * (nx[1] + 1));
-        } else {
-            all == utils::linear_spaced<int>(0, 
-                (nx[0] + 1) * (nx[1] + 1) * (nx[2] + 1) - 1, 
-                (nx[0] + 1) * (nx[1] + 1) * (nx[2] + 1));
-        }
-        return all;
-    }
-    /**
     * @return the constant time increment.
     */
     T dt() {

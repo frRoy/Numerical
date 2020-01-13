@@ -35,6 +35,9 @@ public:
             // spdlog::info("{}", v[i]);
         }
     }
+    ~FVProblem(){
+        delete m_mesh;
+    }
 };
 
 }  // namespace fvm

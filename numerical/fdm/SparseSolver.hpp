@@ -52,8 +52,14 @@ public:
         m_n_t = m_problem->n_t();
         m_dt = m_problem->dt();
         m_dx = m_problem->dx()[0];
-        m_dy = m_problem->dx()[1];
-        m_dz = m_problem->dx()[2];
+        m_dy = 1.0;
+        m_dz = 1.0;
+        if(m_dim != 1){
+            m_dy = m_problem->dx()[1];
+        }
+        if(m_dim == 3){
+            m_dz = m_problem->dx()[2];
+        }
         m_theta = m_problem->theta();
         m_alpha = Vec::Zero(m_n);
         m_f = Vec::Zero(m_n);
